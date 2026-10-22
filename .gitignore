@@ -97,5 +97,11 @@ venv/
 # Local Configuration Secrets
 config/secrets.h
 
-# Local Screenshots
-screenshots/
+# Local Screenshots (allow showcase screenshots, ignore ad-hoc dumps)
+screenshots/*
+!screenshots/spectrum.png
+!screenshots/networks.png
+!screenshots/channels.png
+!screenshots/settings.png
+!screenshots/modal.png
+!screenshots/tracker.png

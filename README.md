@@ -92,6 +92,25 @@ An interactive, touch-screen-enabled 2.4 GHz spectrum analyzer, access point cat
 
 ---
 
+## :camera: Screenshots
+
+### Device UI Showcase
+
+| Screen | Landscape (320x240) |
+|---|---|
+| **2.4 GHz Spectrum View** | ![Landscape Spectrum](screenshots/spectrum.png) |
+| **Access Point Catalog** | ![Landscape Networks](screenshots/networks.png) |
+| **Channel Rating Table** | ![Landscape Channels](screenshots/channels.png) |
+| **System Settings** | ![Landscape Settings](screenshots/settings.png) |
+| **Network Detail Inspector** | ![Landscape Modal](screenshots/modal.png) |
+| **Target AP Signal Tracker** | ![Landscape Tracker](screenshots/tracker.png) |
+
+The device supports capturing the current screen as a standard 24-bit BMP image via two methods:
+- **Physical BOOT button**: Press and hold the **BOOT button** (GPIO 0) on the CYD board for 2 seconds to save a timestamped BMP directly to an inserted FAT32 microSD card (e.g. `/screenshot_YYYYMMDD_HHMMSS.bmp`). A single quick press of the BOOT button triggers an immediate Wi-Fi rescan.
+- **USB Serial Screenshot Tool**: Capture real-time screenshots directly over the USB serial connection using the `task screenshot` command.
+
+---
+
 ## :rocket: Getting Started
 
 ### 1. Build and Flash from Source
