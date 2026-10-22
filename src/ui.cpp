@@ -587,12 +587,17 @@ static void on_channels_table_draw_cell(lv_event_t* e) {
     const auto& p = getCatppuccinFlavor(flavor);
 
     if (row == 0) {
-        if (dsc->rect_dsc) dsc->rect_dsc->bg_color = TO_LV_COLOR(p.mantle);
+        if (dsc->rect_dsc) {
+            dsc->rect_dsc->bg_color = TO_LV_COLOR(p.mantle);
+            dsc->rect_dsc->border_color = TO_LV_COLOR(p.surface1);
+            dsc->rect_dsc->border_width = 1;
+        }
         if (dsc->label_dsc) dsc->label_dsc->color = TO_LV_COLOR(p.mauve);
     } else {
         if (dsc->rect_dsc) {
             dsc->rect_dsc->bg_color = (row % 2 == 0) ? TO_LV_COLOR(p.mantle) : TO_LV_COLOR(p.base);
-            dsc->rect_dsc->border_color = TO_LV_COLOR(p.surface1);
+            dsc->rect_dsc->border_color = (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface1) : TO_LV_COLOR(p.surface0));
+            dsc->rect_dsc->border_width = 1;
         }
 
         if (dsc->label_dsc) {
@@ -912,6 +917,9 @@ void initUI() {
     s_table_channels = lv_table_create(s_tab_channels);
     lv_obj_set_size(s_table_channels, LV_PCT(100), LV_PCT(100));
     lv_obj_set_style_bg_color(s_table_channels, TO_LV_COLOR(p.base), LV_PART_MAIN);
+    lv_obj_set_style_border_color(s_table_channels, TO_LV_COLOR(p.surface1), LV_PART_MAIN);
+    lv_obj_set_style_border_width(s_table_channels, 1, LV_PART_MAIN);
+    lv_obj_set_style_radius(s_table_channels, 4, LV_PART_MAIN);
     lv_table_set_col_cnt(s_table_channels, 4);
     lv_table_set_col_width(s_table_channels, 0, 36);
     lv_table_set_col_width(s_table_channels, 1, 46);
@@ -922,6 +930,8 @@ void initUI() {
     lv_obj_set_style_pad_right(s_table_channels, 4, LV_PART_ITEMS);
     lv_obj_set_style_pad_top(s_table_channels, 6, LV_PART_ITEMS);
     lv_obj_set_style_pad_bottom(s_table_channels, 6, LV_PART_ITEMS);
+    lv_obj_set_style_border_color(s_table_channels, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface1) : TO_LV_COLOR(p.surface0)), LV_PART_ITEMS);
+    lv_obj_set_style_border_width(s_table_channels, 1, LV_PART_ITEMS);
     lv_obj_add_event_cb(s_table_channels, on_channels_table_draw_cell, LV_EVENT_DRAW_PART_BEGIN, nullptr);
 
     lv_table_set_cell_value(s_table_channels, 0, 0, "Ch");
@@ -1276,6 +1286,10 @@ void refreshThemeUI() {
 
     if (s_table_channels) {
         lv_obj_set_style_bg_color(s_table_channels, TO_LV_COLOR(p.base), LV_PART_MAIN);
+        lv_obj_set_style_border_color(s_table_channels, TO_LV_COLOR(p.surface1), LV_PART_MAIN);
+        lv_obj_set_style_border_width(s_table_channels, 1, LV_PART_MAIN);
+        lv_obj_set_style_border_color(s_table_channels, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface1) : TO_LV_COLOR(p.surface0)), LV_PART_ITEMS);
+        lv_obj_set_style_border_width(s_table_channels, 1, LV_PART_ITEMS);
         lv_obj_invalidate(s_table_channels);
     }
 
