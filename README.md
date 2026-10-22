@@ -1,4 +1,4 @@
-# CYD WiFi Analyzer
+# :signal_strength: CYD WiFi Analyzer :pager:
 [![Coveralls](https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Fcoveralls.io%2Frepos%2Fgithub%2Fnicholaswilde%2Fcyd-wifi-analyzer%2Fbadge.svg%3Fbranch%3Dmain&query=%2F%2F*%5Blocal-name()%3D'text'%5D%5Blast()%5D&label=Coveralls&style=for-the-badge&logo=coveralls)](https://coveralls.io/github/nicholaswilde/cyd-wifi-analyzer?branch=main)
 [![task](https://img.shields.io/badge/Task-Enabled-brightgreen?style=for-the-badge&logo=task&logoColor=white)](https://taskfile.dev/#/)
 [![test](https://img.shields.io/github/actions/workflow/status/nicholaswilde/cyd-wifi-analyzer/test.yaml?label=test&style=for-the-badge&branch=main&logo=github-actions)](https://github.com/nicholaswilde/cyd-wifi-analyzer/actions/workflows/test.yaml)
