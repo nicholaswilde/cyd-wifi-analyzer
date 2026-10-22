@@ -96,3 +96,6 @@ venv/
 
 # Local Configuration Secrets
 config/secrets.h
+
+# Local Screenshots
+screenshots/

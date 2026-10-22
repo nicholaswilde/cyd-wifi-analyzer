@@ -705,24 +705,30 @@ static void on_spectrum_draw(lv_event_t* e) {
         if (peak_ap_for_channel[ap.channel] == (int)i) {
             lv_coord_t apex_y = bottom - (lv_coord_t)peak_h;
             char tag[48];
-            snprintf(tag, sizeof(tag), "%.8s (%d)", ap.ssid.c_str(), (int)ap.rssi);
+            if (ap.isHidden || ap.ssid.startsWith("[Hidden")) {
+                snprintf(tag, sizeof(tag), "[Hidden] %ddB", (int)ap.rssi);
+            } else {
+                snprintf(tag, sizeof(tag), "%.8s %ddB", ap.ssid.c_str(), (int)ap.rssi);
+            }
 
             label_dsc.color = curve_dsc.color;
             label_dsc.font = &lv_font_montserrat_10;
+            label_dsc.align = LV_TEXT_ALIGN_CENTER;
+            label_dsc.flag = LV_TEXT_FLAG_NONE;
 
             lv_area_t tag_area = {
-                (lv_coord_t)(cx - 32),
-                (lv_coord_t)(apex_y - 12),
-                (lv_coord_t)(cx + 32),
-                (lv_coord_t)(apex_y + 2)
+                (lv_coord_t)(cx - 42),
+                (lv_coord_t)(apex_y - 13),
+                (lv_coord_t)(cx + 42),
+                (lv_coord_t)(apex_y)
             };
-            if (tag_area.x1 < left) {
-                tag_area.x2 += (left - tag_area.x1);
-                tag_area.x1 = left;
+            if (tag_area.x1 < left + 2) {
+                tag_area.x2 += (left + 2 - tag_area.x1);
+                tag_area.x1 = left + 2;
             }
-            if (tag_area.x2 > right) {
-                tag_area.x1 -= (tag_area.x2 - right);
-                tag_area.x2 = right;
+            if (tag_area.x2 > right - 2) {
+                tag_area.x1 -= (tag_area.x2 - (right - 2));
+                tag_area.x2 = right - 2;
             }
             if (tag_area.y1 < top - 8) {
                 tag_area.y1 = top - 8;
@@ -783,6 +789,11 @@ void initUI() {
     lv_obj_set_size(s_list_networks, LV_PCT(100), LV_PCT(100));
     lv_obj_set_style_bg_color(s_list_networks, TO_LV_COLOR(p.base), LV_PART_MAIN);
     lv_obj_set_style_border_width(s_list_networks, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_left(s_list_networks, 4, LV_PART_MAIN);
+    lv_obj_set_style_pad_right(s_list_networks, 4, LV_PART_MAIN);
+    lv_obj_set_style_pad_top(s_list_networks, 4, LV_PART_MAIN);
+    lv_obj_set_style_pad_bottom(s_list_networks, 4, LV_PART_MAIN);
+    lv_obj_set_style_pad_row(s_list_networks, 3, LV_PART_MAIN);
 
     // ----------------------------------------------------
     // Tab 3: Channels Stats Table
@@ -791,10 +802,15 @@ void initUI() {
     lv_obj_set_size(s_table_channels, LV_PCT(100), LV_PCT(100));
     lv_obj_set_style_bg_color(s_table_channels, TO_LV_COLOR(p.base), LV_PART_MAIN);
     lv_table_set_col_cnt(s_table_channels, 4);
-    lv_table_set_col_width(s_table_channels, 0, 45);
-    lv_table_set_col_width(s_table_channels, 1, 55);
-    lv_table_set_col_width(s_table_channels, 2, 85);
-    lv_table_set_col_width(s_table_channels, 3, 95);
+    lv_table_set_col_width(s_table_channels, 0, 36);
+    lv_table_set_col_width(s_table_channels, 1, 46);
+    lv_table_set_col_width(s_table_channels, 2, 80);
+    lv_table_set_col_width(s_table_channels, 3, 108);
+
+    lv_obj_set_style_pad_left(s_table_channels, 4, LV_PART_ITEMS);
+    lv_obj_set_style_pad_right(s_table_channels, 4, LV_PART_ITEMS);
+    lv_obj_set_style_pad_top(s_table_channels, 6, LV_PART_ITEMS);
+    lv_obj_set_style_pad_bottom(s_table_channels, 6, LV_PART_ITEMS);
 
     lv_table_set_cell_value(s_table_channels, 0, 0, "Ch");
     lv_table_set_cell_value(s_table_channels, 0, 1, "APs");
@@ -1025,14 +1041,32 @@ void updateUI() {
 
     for (size_t i = 0; i < aps.size(); i++) {
         const auto& ap = aps[i];
-        char btnText[96];
-        snprintf(btnText, sizeof(btnText), "CH %-2d  %-16.16s  %ddBm (%s)",
+
+        const char* rawAuth = authModeToString(ap.authMode);
+        char shortAuth[10];
+        if (strstr(rawAuth, "WPA3")) strcpy(shortAuth, "WPA3");
+        else if (strstr(rawAuth, "WPA2")) strcpy(shortAuth, "WPA2");
+        else if (strstr(rawAuth, "WPA")) strcpy(shortAuth, "WPA");
+        else if (strstr(rawAuth, "WEP")) strcpy(shortAuth, "WEP");
+        else strcpy(shortAuth, "Open");
+
+        String displaySsid = ap.ssid;
+        if (ap.isHidden || displaySsid.startsWith("[Hidden")) {
+            displaySsid = "[Hidden]";
+        }
+
+        char btnText[64];
+        snprintf(btnText, sizeof(btnText), "Ch%-2d  %-9.9s  %ddBm  %s",
                  ap.channel,
-                 ap.ssid.c_str(),
+                 displaySsid.c_str(),
                  (int)ap.rssi,
-                 authModeToString(ap.authMode));
+                 shortAuth);
 
         lv_obj_t* btn = lv_list_add_btn(s_list_networks, LV_SYMBOL_WIFI, btnText);
+        lv_obj_set_style_pad_left(btn, 6, LV_PART_MAIN);
+        lv_obj_set_style_pad_right(btn, 6, LV_PART_MAIN);
+        lv_obj_set_style_pad_top(btn, 5, LV_PART_MAIN);
+        lv_obj_set_style_pad_bottom(btn, 5, LV_PART_MAIN);
         lv_obj_set_style_bg_color(btn, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
         lv_obj_set_style_text_color(btn, TO_LV_COLOR(getChannelColor(ap.channel, getCurrentThemeFlavor())), LV_PART_MAIN);
         lv_obj_set_user_data(btn, (void*)(uintptr_t)i);
