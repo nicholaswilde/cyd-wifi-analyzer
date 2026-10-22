@@ -66,6 +66,22 @@ void test_backlight_fade_to(void) {
     TEST_ASSERT_EQUAL(64, bm.getDutyCycle());
 }
 
+void test_backlight_mode_switching(void) {
+    BacklightManager bm(21, 0, 10.0f);
+    // Set manual brightness to 80%
+    bm.setManualBrightness(80);
+    uint8_t manualDuty = bm.getDutyCycle();
+    TEST_ASSERT_GREATER_THAN(26, manualDuty);
+
+    // Switch to auto mode with low light (0 ADC)
+    bm.update(0);
+    TEST_ASSERT_EQUAL(26, bm.getDutyCycle());
+
+    // Switch back to manual brightness: should restore manual duty
+    bm.setManualBrightness(80);
+    TEST_ASSERT_EQUAL(manualDuty, bm.getDutyCycle());
+}
+
 int main(int argc, char **argv) {
     UNITY_BEGIN();
     RUN_TEST(test_backlight_initial_state);
@@ -73,5 +89,6 @@ int main(int argc, char **argv) {
     RUN_TEST(test_backlight_smoothing);
     RUN_TEST(test_backlight_manual_brightness);
     RUN_TEST(test_backlight_fade_to);
+    RUN_TEST(test_backlight_mode_switching);
     return UNITY_END();
 }

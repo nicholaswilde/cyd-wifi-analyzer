@@ -142,6 +142,9 @@ static void my_touchpad_read(lv_indev_drv_t *indev_drv, lv_indev_data_t *data) {
 }
 
 void initDisplayAndTouch() {
+    // NOTE: TFT_BL is intentionally NOT set up here via digitalWrite.
+    // BacklightManager::begin() configures it exclusively as an LEDC PWM output.
+
     int rot = settings.getScreenOrientation();
     tft.init();
     tft.setRotation(rot);

@@ -9,8 +9,8 @@ SettingsManager settings;
 
 SettingsManager::SettingsManager()
     : _themeFlavor(DEFAULT_THEME_FLAVOR),
-      _brightness(100),
-      _autoBrightness(false),
+      _brightness(DEFAULT_BRIGHTNESS),
+      _autoBrightness(DEFAULT_AUTO_BRIGHTNESS),
       _scanIntervalMs(SCAN_INTERVAL_MS),
       _passiveScan(PASSIVE_SCAN),
       _screenOrientation(DEFAULT_SCREEN_ORIENTATION),
@@ -21,8 +21,8 @@ void SettingsManager::begin() {
     Preferences prefs;
     if (prefs.begin("wifi_analyzer", true)) {
         _themeFlavor = prefs.getInt("theme", DEFAULT_THEME_FLAVOR);
-        _brightness = prefs.getInt("brightness", 100);
-        _autoBrightness = prefs.getBool("auto_bright", false);
+        _brightness = prefs.getInt("brightness", DEFAULT_BRIGHTNESS);
+        _autoBrightness = prefs.getBool("auto_bright", DEFAULT_AUTO_BRIGHTNESS);
         _scanIntervalMs = prefs.getUInt("scan_interval", SCAN_INTERVAL_MS);
         _passiveScan = prefs.getBool("passive_scan", PASSIVE_SCAN);
         _screenOrientation = prefs.getInt("orientation", DEFAULT_SCREEN_ORIENTATION);
@@ -111,8 +111,8 @@ void SettingsManager::setLedBrightness(int brightness) {
 
 void SettingsManager::resetToDefaults() {
     _themeFlavor = DEFAULT_THEME_FLAVOR;
-    _brightness = 100;
-    _autoBrightness = false;
+    _brightness = DEFAULT_BRIGHTNESS;
+    _autoBrightness = DEFAULT_AUTO_BRIGHTNESS;
     _scanIntervalMs = SCAN_INTERVAL_MS;
     _passiveScan = PASSIVE_SCAN;
     _screenOrientation = DEFAULT_SCREEN_ORIENTATION;

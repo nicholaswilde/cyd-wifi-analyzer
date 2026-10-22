@@ -101,8 +101,10 @@ static int dropdownIdxToOrientation(uint16_t idx) {
 static void on_brightness_changed(lv_event_t* e) {
     lv_obj_t* slider = lv_event_get_target(e);
     int32_t val = lv_slider_get_value(slider);
-    backlight.setManualBrightness((uint8_t)val);
     settings.setBrightness((int)val);
+    if (!settings.getAutoBrightness()) {
+        backlight.setManualBrightness((uint8_t)val);
+    }
 }
 
 static void on_theme_changed(lv_event_t* e) {
@@ -124,6 +126,23 @@ static void on_auto_bright_changed(lv_event_t* e) {
     lv_obj_t* sw = lv_event_get_target(e);
     bool state = lv_obj_has_state(sw, LV_STATE_CHECKED);
     settings.setAutoBrightness(state);
+
+    if (s_slider_brightness) {
+        if (state) {
+            lv_obj_add_state(s_slider_brightness, LV_STATE_DISABLED);
+        } else {
+            lv_obj_clear_state(s_slider_brightness, LV_STATE_DISABLED);
+        }
+    }
+
+    if (state) {
+#ifndef NATIVE_TEST
+        uint16_t ldrVal = analogRead(LDR_PIN);
+        backlight.update(ldrVal);
+#endif
+    } else {
+        backlight.setManualBrightness((uint8_t)settings.getBrightness());
+    }
 }
 
 static void on_interval_changed(lv_event_t* e) {
@@ -154,6 +173,13 @@ static void on_led_toggle_changed(lv_event_t* e) {
     bool en = lv_obj_has_state(sw, LV_STATE_CHECKED);
     settings.setLedEnabled(en);
     led.setEnabled(en);
+    if (s_slider_led_bright) {
+        if (en) {
+            lv_obj_clear_state(s_slider_led_bright, LV_STATE_DISABLED);
+        } else {
+            lv_obj_add_state(s_slider_led_bright, LV_STATE_DISABLED);
+        }
+    }
 }
 
 static void on_led_brightness_changed(lv_event_t* e) {
@@ -171,7 +197,11 @@ static void on_reset_settings_clicked(lv_event_t* e) {
     }
     if (s_slider_brightness) {
         lv_slider_set_value(s_slider_brightness, settings.getBrightness(), LV_ANIM_OFF);
-        backlight.setManualBrightness((uint8_t)settings.getBrightness());
+        if (settings.getAutoBrightness()) {
+            lv_obj_add_state(s_slider_brightness, LV_STATE_DISABLED);
+        } else {
+            lv_obj_clear_state(s_slider_brightness, LV_STATE_DISABLED);
+        }
     }
     if (s_switch_auto_bright) {
         if (settings.getAutoBrightness()) {
@@ -179,6 +209,9 @@ static void on_reset_settings_clicked(lv_event_t* e) {
         } else {
             lv_obj_clear_state(s_switch_auto_bright, LV_STATE_CHECKED);
         }
+    }
+    if (!settings.getAutoBrightness()) {
+        backlight.setManualBrightness((uint8_t)settings.getBrightness());
     }
     if (s_dropdown_interval) {
         lv_dropdown_set_selected(s_dropdown_interval, scanIntervalToDropdownIdx(settings.getScanIntervalMs()));
@@ -205,6 +238,11 @@ static void on_reset_settings_clicked(lv_event_t* e) {
     }
     if (s_slider_led_bright) {
         lv_slider_set_value(s_slider_led_bright, settings.getLedBrightness(), LV_ANIM_OFF);
+        if (settings.getLedEnabled()) {
+            lv_obj_clear_state(s_slider_led_bright, LV_STATE_DISABLED);
+        } else {
+            lv_obj_add_state(s_slider_led_bright, LV_STATE_DISABLED);
+        }
     }
     refreshThemeUI();
 }
@@ -974,6 +1012,9 @@ void initUI() {
     lv_obj_set_size(s_slider_brightness, 142, 12);
     lv_obj_align(s_slider_brightness, LV_ALIGN_TOP_LEFT, 132, 54);
     lv_obj_add_event_cb(s_slider_brightness, on_brightness_changed, LV_EVENT_VALUE_CHANGED, nullptr);
+    if (settings.getAutoBrightness()) {
+        lv_obj_add_state(s_slider_brightness, LV_STATE_DISABLED);
+    }
 
     s_lbl_auto_bright = lv_label_create(s_tab_settings);
     lv_label_set_text(s_lbl_auto_bright, "Auto Bright:");
@@ -1046,6 +1087,9 @@ void initUI() {
     lv_obj_set_size(s_slider_led_bright, 142, 12);
     lv_obj_align(s_slider_led_bright, LV_ALIGN_TOP_LEFT, 132, 292);
     lv_obj_add_event_cb(s_slider_led_bright, on_led_brightness_changed, LV_EVENT_VALUE_CHANGED, nullptr);
+    if (!settings.getLedEnabled()) {
+        lv_obj_add_state(s_slider_led_bright, LV_STATE_DISABLED);
+    }
 
     s_btn_reset = lv_btn_create(s_tab_settings);
     lv_obj_set_size(s_btn_reset, 265, 34);

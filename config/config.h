@@ -19,6 +19,10 @@
 // Default Theme Flavor
 #define DEFAULT_THEME_FLAVOR CATPPUCCIN_MOCHA
 
+// Default Backlight Settings
+#define DEFAULT_BRIGHTNESS 100
+#define DEFAULT_AUTO_BRIGHTNESS false
+
 #define TO_LV_COLOR(c) (lv_color_t){.full = (c)}
 
 // Wi-Fi Analyzer Settings

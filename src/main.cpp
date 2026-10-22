@@ -32,15 +32,20 @@ void setup() {
     led.setEnabled(settings.getLedEnabled());
     led.setBrightness(settings.getLedBrightness());
 
-    // Initialize Backlight
-    backlight.begin();
-    backlight.setManualBrightness(settings.getBrightness());
-
     // Initialize physical BOOT button (GPIO 0)
     buttonManager.begin();
 
-    // Initialize Display and Touch
+    // Initialize Display and Touch (must run before backlight so tft.init does not clobber LEDC PWM pin)
     initDisplayAndTouch();
+
+    // Initialize Backlight (configured after display init so LEDC controls TFT_BL)
+    backlight.begin();
+    if (settings.getAutoBrightness()) {
+        uint16_t ldrVal = analogRead(LDR_PIN);
+        backlight.update(ldrVal);
+    } else {
+        backlight.setManualBrightness(settings.getBrightness());
+    }
 
     // Initialize LVGL core & drivers
     initLVGL();
