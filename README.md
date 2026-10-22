@@ -114,7 +114,28 @@ The device supports capturing the current screen as a standard 24-bit BMP image 
 
 ## :rocket: Getting Started
 
-### 1. Build and Flash from Source
+### 1. Quick Install (Pre-compiled Binaries)
+
+Flash pre-compiled firmware directly from your terminal using the flash script. Replace `/dev/ttyUSB0` with your actual serial port. By default, it flashes the `cyd_28r` version, but you can specify the target device as the first argument:
+
+```bash
+# Flash the default cyd_28r (2.8" resistive ILI9341 320x240 screen)
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicholaswilde/cyd-wifi-analyzer/main/scripts/flash.sh)" _ cyd_28r /dev/ttyUSB0
+
+# Or flash the cyd_28c version (2.8" capacitive ST7789 320x240 screen)
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicholaswilde/cyd-wifi-analyzer/main/scripts/flash.sh)" _ cyd_28c /dev/ttyUSB0
+
+# Or flash the cyd_28_nm version (2.8" NodeMiner ST7789 320x240 screen)
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicholaswilde/cyd-wifi-analyzer/main/scripts/flash.sh)" _ cyd_28_nm /dev/ttyUSB0
+
+# Or flash the cyd_35c version (3.5" capacitive ST7796 480x320 screen)
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/nicholaswilde/cyd-wifi-analyzer/main/scripts/flash.sh)" _ cyd_35c /dev/ttyUSB0
+```
+
+> [!WARNING]
+> Running a script directly from the internet with `bash -c "$(curl...)"` is a potential security risk. Always review the script's source code before executing it to ensure it is safe. You can view the script [here](https://github.com/nicholaswilde/cyd-wifi-analyzer/blob/main/scripts/flash.sh).
+
+### 2. Build and Flash from Source
 
 This project uses [PlatformIO](https://platformio.org/) and [Task](https://taskfile.dev/):
 
@@ -146,7 +167,7 @@ task upload
 task monitor
 ```
 
-### 2. Capture Real-Time Screenshots over USB Serial
+### 3. Capture Real-Time Screenshots over USB Serial
 
 Capture pixel-perfect screenshots of the display over the USB serial connection at any time—even while active 2.4 GHz channel scanning is in progress:
 
@@ -163,7 +184,7 @@ task screenshot -- --all
 
 Captured images are saved in `screenshots/` with a timestamped filename (e.g. `screenshots/screenshot_YYYYMMDD_HHMMSS.png`) and automatically update `screenshots/latest.png` for rapid inspection.
 
-### 3. Run Host-Native Unit Tests & Coverage
+### 4. Run Host-Native Unit Tests & Coverage
 
 Unit tests execute natively on host systems (Linux/macOS) with mocked hardware interfaces:
 
