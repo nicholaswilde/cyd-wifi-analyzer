@@ -77,10 +77,11 @@ An interactive, touch-screen-enabled 2.4 GHz spectrum analyzer, access point cat
 ## :hammer_and_wrench: Hardware Requirements
 
 - **ESP32 Cheap Yellow Display (CYD)**:
-  - **CYD 2.8" (Resistive)**: `ESP32-2432S028R` — 2.8″ 320×240 ILI9341 LCD with XPT2046 resistive touch.
-  - **CYD 2.8" (Capacitive)**: `ESP32-JC2432W328C` — 2.8″ 320×240 ST7789 LCD with CST816 capacitive touch.
-  - **CYD 2.8" NodeMiner / Rockbase (Resistive)**: `ESP32-2432S028` ("NM") — 2.8″ 320×240 ST7789 LCD with XPT2046 resistive touch.
-  - **CYD 3.5" (Capacitive)**: `ESP32-3248S035C` — 3.5″ 480×320 ST7796 LCD with GT911/CST820 capacitive touch.
+  - **CYD 2.8" (Resistive)**: `ESP32-2432S028R` — 2.8″ 320×240 ILI9341 LCD with XPT2046 resistive touch (`cyd_28r` / `cyd_28r_inv`).
+  - **CYD 2.8" (Capacitive)**: `ESP32-JC2432W328C` — 2.8″ 320×240 ST7789 LCD with CST816 capacitive touch (`cyd_28c` / `cyd_28c_inv`).
+  - **CYD 2.8" NodeMiner / Rockbase (Resistive)**: `ESP32-2432S028` ("NM") — 2.8″ 320×240 ST7789 LCD with XPT2046 resistive touch (`cyd_28_nm` / `cyd_28_nm_inv`).
+  - **CYD 3.5" (Capacitive)**: `ESP32-3248S035C` — 3.5″ 480×320 ST7796 LCD with GT911/CST820 capacitive touch (`cyd_35c` / `cyd_35c_inv`).
+  - See [docs/hardware-variants.md](docs/hardware-variants.md) for detailed controller variations, noise band fixes, and build configurations.
 - **Onboard Peripherals**:
   - **MicroSD Card Slot**: Standard FAT32 SPI interface (VSPI: CS=GPIO 5, SCK=GPIO 18, MISO=GPIO 19, MOSI=GPIO 23).
   - **BOOT Button**: Tactile user push button on GPIO 0.
@@ -122,14 +123,21 @@ This project uses [PlatformIO](https://platformio.org/) and [Task](https://taskf
 git clone https://github.com/nicholaswilde/cyd-wifi-analyzer.git
 cd cyd-wifi-analyzer
 
-# Build firmware for the default board (cyd_28r)
+# Initialize local environment (.env)
+task init
+
+# Build firmware for the configured board (defaults to cyd_28r via PIO_ENV in .env)
 task build
 
-# Or build for a specific board environment
-task build:cyd_28r      # 2.8" Resistive Touch (ILI9341)
-task build:cyd_28c      # 2.8" Capacitive Touch (JC2432W328C)
-task build:cyd_28_nm    # 2.8" Resistive Touch NodeMiner (ST7789)
-task build:cyd_35c      # 3.5" Capacitive Touch (ESP32-3248S035C)
+# Or build explicitly for a specific board environment
+task build:cyd_28r          # 2.8" Resistive Touch (ILI9341)
+task build:cyd_28r_inv      # 2.8" Resistive Touch Inverted
+task build:cyd_28c          # 2.8" Capacitive Touch (JC2432W328C)
+task build:cyd_28c_inv      # 2.8" Capacitive Touch Inverted
+task build:cyd_28_nm        # 2.8" Resistive Touch NodeMiner (ST7789)
+task build:cyd_28_nm_inv    # 2.8" Resistive Touch NodeMiner Inverted
+task build:cyd_35c          # 3.5" Capacitive Touch (ESP32-3248S035C)
+task build:cyd_35c_inv      # 3.5" Capacitive Touch Inverted
 
 # Upload firmware to your connected CYD board
 task upload
@@ -155,13 +163,19 @@ task screenshot -- --all
 
 Captured images are saved in `screenshots/` with a timestamped filename (e.g. `screenshots/screenshot_YYYYMMDD_HHMMSS.png`) and automatically update `screenshots/latest.png` for rapid inspection.
 
-### 3. Run Host-Native Unit Tests
+### 3. Run Host-Native Unit Tests & Coverage
 
 Unit tests execute natively on host systems (Linux/macOS) with mocked hardware interfaces:
 
 ```bash
+# Run all host-native unit tests
 task test
-# or: pio test -e native
+
+# Generate and display terminal code coverage report
+task coverage:report
+
+# Upload coverage to Coveralls.io (requires COVERALLS_REPO_TOKEN in .env)
+task coverage:upload
 ```
 
 ---
@@ -181,6 +195,35 @@ The **Settings Tab** on the device provides touch controls for all runtime param
 | **Status LED** | Toggle Switch | `ON` / `OFF` | `ON` | Enables or disables physical RGB status LED indications. |
 | **LED Brightness** | Slider | `10` to `255` | `255` | Sets the maximum brightness of the RGB status LED. |
 | **Reset Defaults** | Push Button | Tap to execute | — | Clears NVS preferences and restores safe factory configuration. |
+
+---
+
+## :computer: Development
+
+This project is built with **PlatformIO** and supports ESP32 hardware compilation, static code analysis, and native desktop mock testing via a Unity test suite.
+
+### Command Reference
+
+| Action | Task Command | PlatformIO / CLI Equivalent | Description |
+| :--- | :--- | :--- | :--- |
+| **Initialize** | `task init` | `cp .env.example .env` | Initializes local environment file from template. |
+| **Build** | `task build` | `pio run -e $PIO_ENV` | Compiles firmware for configured `PIO_ENV`. |
+| **Upload** | `task upload` | `pio run -e $PIO_ENV --target upload` | Flashes firmware to connected board. |
+| **Monitor** | `task monitor` | `pio device monitor` | Opens serial monitor (115200 baud). |
+| **Erase & Upload** | `task eau` | `pio run -e $PIO_ENV -t erase -t upload` | Erases flash and flashes firmware. |
+| **Upload & Monitor** | `task uam` | `pio run -e $PIO_ENV -t upload -t monitor` | Flashes firmware and opens serial monitor. |
+| **Screenshot** | `task screenshot` | `uv run python scripts/capture-serial-screenshot.py` | Captures display screenshot over serial. |
+| **Unit Tests** | `task test` | `pio test -e native` | Runs host-native unit test suite. |
+| **Coverage Report** | `task coverage:report` | `lcov --capture ...` | Displays terminal code coverage breakdown. |
+| **Upload Coverage** | `task coverage:upload` | `coveralls report ...` | Uploads LCOV coverage to Coveralls.io. |
+| **Static Analysis** | `task check` | `pio check -e $PIO_ENV` | Runs `cppcheck` static code analysis. |
+| **Clean** | `task clean` | `pio run -t clean` | Cleans PlatformIO build artifacts. |
+
+### Release Workflow
+
+The project includes automated versioning and release packaging skills:
+- **`./scripts/release.sh`**: Runs pre-release validations (`task check`, `task test`), bumps `version.txt`, tags release, and atomic pushes to remote to trigger GitHub Actions release builds.
+- **`./scripts/release_summary.py`**: Retrieves git commit history, groups conventional commits (`Features`, `Bug Fixes`, `Improvements`, `Documentation`, `Special Thanks`), and updates existing GitHub draft releases in-place.
 
 ---
 
