@@ -1,13 +1,27 @@
 #include "screenshot_manager.h"
+#include "sd_card_manager.h"
 #include "ui.h"
 #include <cstring>
 #include <cstdio>
 
+#ifndef NATIVE_TEST
+#include <FS.h>
+#include <SD.h>
+using fs::File;
+#else
+#include "SD.h"
+#include "FS.h"
+#endif
+
+static File _sdFile;
+
 bool ScreenshotManager::_captureInProgress = false;
 ScreenshotFormat ScreenshotManager::_format = FORMAT_RLE16;
+ScreenshotDestination ScreenshotManager::_destination = DEST_SERIAL;
 uint32_t ScreenshotManager::_width = 320;
 uint32_t ScreenshotManager::_height = 240;
 String ScreenshotManager::_serialBuffer = "";
+std::string ScreenshotManager::_currentFilename = "";
 
 uint16_t ScreenshotManager::_rlePixel = 0;
 uint8_t ScreenshotManager::_rleCount = 0;
@@ -16,9 +30,11 @@ bool ScreenshotManager::_rleHasPending = false;
 void ScreenshotManager::init() {
     _captureInProgress = false;
     _format = FORMAT_RLE16;
+    _destination = DEST_SERIAL;
     _width = 320;
     _height = 240;
     _serialBuffer = "";
+    _currentFilename = "";
     _rlePixel = 0;
     _rleCount = 0;
     _rleHasPending = false;
@@ -49,6 +65,8 @@ void ScreenshotManager::handleCommand(const String& cmd) {
         startCapture(FORMAT_RLE16);
     } else if (trimmed.equalsIgnoreCase("screenshot raw") || trimmed.equalsIgnoreCase("screenshot bmp")) {
         startCapture(FORMAT_BMP24);
+    } else if (trimmed.equalsIgnoreCase("screenshot sd")) {
+        captureToSD();
     } else if (trimmed.startsWith("tab ") || trimmed.startsWith("TAB ")) {
         int tabIdx = trimmed.substring(4).toInt();
         setTab((uint16_t)tabIdx);
@@ -58,10 +76,21 @@ void ScreenshotManager::handleCommand(const String& cmd) {
     }
 }
 
+std::string ScreenshotManager::generateFilename(const struct tm* timeinfo, unsigned long fallbackMillis) {
+    char filename[64];
+    if (timeinfo) {
+        strftime(filename, sizeof(filename), "/screenshot_%Y%m%d_%H%M%S.bmp", timeinfo);
+    } else {
+        snprintf(filename, sizeof(filename), "/screenshot_%lu.bmp", fallbackMillis);
+    }
+    return std::string(filename);
+}
+
 bool ScreenshotManager::startCapture(ScreenshotFormat format) {
     if (_captureInProgress) return false;
 
     _captureInProgress = true;
+    _destination = DEST_SERIAL;
     _format = format;
     _rleHasPending = false;
     _rleCount = 0;
@@ -89,6 +118,83 @@ bool ScreenshotManager::startCapture(ScreenshotFormat format) {
 
     endCapture();
 #endif
+    return true;
+}
+
+bool ScreenshotManager::beginCaptureToSD(const char* filepath) {
+    if (_captureInProgress) {
+        Serial.println("[Screenshot] Error: Capture already in progress.");
+        return false;
+    }
+
+    if (!SdCardManager::begin()) {
+        Serial.println("[Screenshot] Error: SD card not mounted.");
+        return false;
+    }
+
+    if (filepath && strlen(filepath) > 0) {
+        _currentFilename = filepath;
+    } else {
+        _currentFilename = generateFilename(nullptr, millis());
+    }
+
+#ifndef NATIVE_TEST
+    _sdFile = SD.open(_currentFilename.c_str(), FILE_WRITE);
+#else
+    _sdFile = SD.open(_currentFilename.c_str(), "w");
+#endif
+
+    if (!_sdFile) {
+        Serial.printf("[Screenshot] Error: Failed to open %s for writing.\n", _currentFilename.c_str());
+        return false;
+    }
+
+#ifndef NATIVE_TEST
+    if (lv_disp_get_default()) {
+        _width = lv_disp_get_hor_res(lv_disp_get_default());
+        _height = lv_disp_get_ver_res(lv_disp_get_default());
+    } else {
+        _width = 320;
+        _height = 240;
+    }
+#else
+    _width = 320;
+    _height = 240;
+#endif
+
+    // Write BMP header (54 bytes)
+    BmpHeader hdr = createHeader(_width, _height);
+    _sdFile.write(hdr.bytes, sizeof(hdr.bytes));
+
+    // Pre-fill pixel area with zeros so random-access seek/write per tile functions properly
+    uint8_t zeroBuf[480 * 3];
+    memset(zeroBuf, 0, sizeof(zeroBuf));
+    for (uint32_t r = 0; r < _height; r++) {
+        _sdFile.write(zeroBuf, _width * 3);
+    }
+
+    _captureInProgress = true;
+    _destination = DEST_SD;
+    Serial.printf("[Screenshot] SD capture started: %s\n", _currentFilename.c_str());
+    return true;
+}
+
+bool ScreenshotManager::captureToSD(const char* filepath) {
+    if (!beginCaptureToSD(filepath)) {
+        return false;
+    }
+
+#ifndef NATIVE_TEST
+    lv_obj_invalidate(lv_scr_act());
+    lv_refr_now(NULL);
+#else
+    // Simulate tiles covering frame for tests
+    uint16_t tile[320 * 120] = {0};
+    onFlushTile(0, 0, 319, 119, tile);
+    onFlushTile(0, 120, 319, 239, tile);
+#endif
+
+    endCapture();
     return true;
 }
 
@@ -127,6 +233,26 @@ void ScreenshotManager::onFlushTile(int32_t x1, int32_t y1, int32_t x2, int32_t 
     uint32_t tileW = (uint32_t)(x2 - x1 + 1);
     uint32_t tileH = (uint32_t)(y2 - y1 + 1);
 
+    if (_destination == DEST_SD) {
+        if (!_sdFile) return;
+        uint8_t rowBuf[480 * 3];
+        for (uint32_t r = 0; r < tileH; r++) {
+            const uint16_t* srcRow = pixels + r * tileW;
+            for (uint32_t c = 0; c < tileW; c++) {
+                uint8_t red, green, blue;
+                convertRGB565ToBGR24(srcRow[c], red, green, blue);
+                rowBuf[c * 3]     = blue;
+                rowBuf[c * 3 + 1] = green;
+                rowBuf[c * 3 + 2] = red;
+            }
+            uint32_t absRow = (uint32_t)y1 + r;
+            uint32_t fileOff = 54 + absRow * _width * 3 + (uint32_t)x1 * 3;
+            _sdFile.seek(fileOff);
+            _sdFile.write(rowBuf, tileW * 3);
+        }
+        return;
+    }
+
     if (_format == FORMAT_RLE16) {
         uint32_t totalPixels = tileW * tileH;
         for (uint32_t i = 0; i < totalPixels; i++) {
@@ -154,14 +280,24 @@ void ScreenshotManager::onFlushTile(int32_t x1, int32_t y1, int32_t x2, int32_t 
 void ScreenshotManager::endCapture() {
     if (!_captureInProgress) return;
 
-    if (_format == FORMAT_RLE16) {
-        rleFlushRun();
-    }
-
-#ifndef NATIVE_TEST
-    Serial.print("\n>>>SCREENSHOT_END<<<\n");
-    Serial.flush();
+    if (_destination == DEST_SD) {
+        if (_sdFile) {
+            _sdFile.close();
+        }
+        Serial.printf("[Screenshot] SD capture saved: %s\n", _currentFilename.c_str());
+#ifdef NATIVE_TEST
+        extern bool mock_sd_card_mounted;
+        mock_sd_card_mounted = false;
 #endif
+    } else {
+        if (_format == FORMAT_RLE16) {
+            rleFlushRun();
+        }
+#ifndef NATIVE_TEST
+        Serial.print("\n>>>SCREENSHOT_END<<<\n");
+        Serial.flush();
+#endif
+    }
 
     _captureInProgress = false;
 }

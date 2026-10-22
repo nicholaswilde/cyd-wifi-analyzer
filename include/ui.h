@@ -12,5 +12,6 @@ uint16_t getTab();
 
 void openTrackerView(const String& bssidStr, const String& ssid, uint8_t channel);
 void closeTrackerView();
+void showUIStatusMessage(const char* message);
 
 #endif // UI_H

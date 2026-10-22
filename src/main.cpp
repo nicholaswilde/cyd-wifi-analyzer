@@ -7,9 +7,12 @@
 #include "wifi_analyzer.h"
 #include "led_manager.h"
 #include "screenshot_manager.h"
+#include "sd_card_manager.h"
+#include "button_manager.h"
 #include "ui.h"
 
 BacklightManager backlight(TFT_BL, 0, 10.0f);
+ButtonManager buttonManager(BOOT_BUTTON_PIN);
 
 static unsigned long lastBacklightUpdate = 0;
 
@@ -33,6 +36,9 @@ void setup() {
     backlight.begin();
     backlight.setManualBrightness(settings.getBrightness());
 
+    // Initialize physical BOOT button (GPIO 0)
+    buttonManager.begin();
+
     // Initialize Display and Touch
     initDisplayAndTouch();
 
@@ -52,6 +58,26 @@ void setup() {
 void loop() {
     // Check USB Serial for screenshot capture or tab navigation commands
     ScreenshotManager::checkSerial();
+
+    // Check physical BOOT button actions
+    ButtonAction action = buttonManager.update(millis());
+    if (action == ButtonAction::SINGLE_PRESS) {
+        Serial.println("[System] BOOT button single press: Triggering Wi-Fi rescan...");
+        showUIStatusMessage("Scanning Wi-Fi...");
+        wifiAnalyzer.triggerScan();
+        led.setState(LedManager::STATE_SCANNING);
+    } else if (action == ButtonAction::LONG_PRESS) {
+        Serial.println("[System] BOOT button long press: Capturing screenshot to SD...");
+        std::string filename = ScreenshotManager::generateFilename(nullptr, millis());
+        bool ok = ScreenshotManager::captureToSD(filename.c_str());
+        if (ok) {
+            showUIStatusMessage("Screenshot saved!");
+            led.setState(LedManager::STATE_PULSE_WHITE);
+        } else {
+            showUIStatusMessage("SD Card Missing!");
+            led.setState(LedManager::STATE_ALERT_RED);
+        }
+    }
 
     // Non-blocking RGB status LED updates
     led.update(millis());

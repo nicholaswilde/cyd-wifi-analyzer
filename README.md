@@ -58,6 +58,11 @@ An interactive, touch-screen-enabled 2.4 GHz spectrum analyzer, access point cat
     - **Tracker mode**: Green when near, Yellow when moderate, Red when distant.
   - Settings controls to toggle the LED on/off and adjust LED brightness with gamma 2.2 scaling.
 
+- **MicroSD Card Screenshot Capture & Physical BOOT Button**:
+  - **Long Press ($\ge 2$s)**: Captures the active LVGL display buffer directly to a 24-bit BMP image on an inserted FAT32 microSD card (e.g. `/screenshot_YYYYMMDD_HHMMSS.bmp`) using zero large-memory tile streaming to prevent heap fragmentation.
+  - **Quick Press ($< 1$s)**: Triggers an immediate Wi-Fi spectrum rescan.
+  - **On-Screen & LED Cues**: Shows a clean Catppuccin toast card (`Screenshot saved!` / `SD Card Missing!`) and triggers status LED pulse feedback.
+
 - **LDR Ambient Light Auto-Dimming**:
   - Automatic backlight brightness adjustment driven by the onboard LDR photoresistor (GPIO 34).
   - Exponential Moving Average (EMA) light filtering with natural $\gamma = 2.2$ gamma-corrected PWM fading via `BacklightManager`.
@@ -77,6 +82,8 @@ An interactive, touch-screen-enabled 2.4 GHz spectrum analyzer, access point cat
   - **CYD 2.8" NodeMiner / Rockbase (Resistive)**: `ESP32-2432S028` ("NM") — 2.8″ 320×240 ST7789 LCD with XPT2046 resistive touch.
   - **CYD 3.5" (Capacitive)**: `ESP32-3248S035C` — 3.5″ 480×320 ST7796 LCD with GT911/CST820 capacitive touch.
 - **Onboard Peripherals**:
+  - **MicroSD Card Slot**: Standard FAT32 SPI interface (VSPI: CS=GPIO 5, SCK=GPIO 18, MISO=GPIO 19, MOSI=GPIO 23).
+  - **BOOT Button**: Tactile user push button on GPIO 0.
   - **RGB Status LED**: Active-low LED on GPIO 4 (Red), 16 (Green), 17 (Blue) on 2.8" boards; GPIO 4 (Red), 17 (Green), 16 (Blue) on 3.5" boards.
   - **Ambient Light Sensor (LDR)**: Photoresistor on GPIO 34.
   - **Backlight Control**: PWM on GPIO 21 (or GPIO 27 on capacitive boards).

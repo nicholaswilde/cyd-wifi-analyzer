@@ -2,6 +2,8 @@
 #include "Arduino.h"
 #include "../mocks/mocks.cpp"
 #include "screenshot_manager.h"
+#include "sd_card_manager.h"
+#include "../../src/sd_card_manager.cpp"
 #include "../../src/screenshot_manager.cpp"
 #include "ui.h"
 
@@ -173,6 +175,57 @@ void test_screenshot_command_parsing(void) {
     TEST_ASSERT_FALSE(ScreenshotManager::isCaptureInProgress());
 }
 
+void test_filename_generation_timestamp(void) {
+    struct tm tm_val;
+    memset(&tm_val, 0, sizeof(tm_val));
+    tm_val.tm_year = 126; // 2026
+    tm_val.tm_mon = 9;    // October (0-indexed)
+    tm_val.tm_mday = 21;
+    tm_val.tm_hour = 23;
+    tm_val.tm_min = 15;
+    tm_val.tm_sec = 30;
+
+    std::string fn = ScreenshotManager::generateFilename(&tm_val, 0);
+    TEST_ASSERT_EQUAL_STRING("/screenshot_20261021_231530.bmp", fn.c_str());
+}
+
+void test_filename_generation_fallback(void) {
+    std::string fn = ScreenshotManager::generateFilename(nullptr, 42949);
+    TEST_ASSERT_EQUAL_STRING("/screenshot_42949.bmp", fn.c_str());
+}
+
+void test_sd_screenshot_capture_success(void) {
+    mock_sd_card_present = true;
+    mock_files.clear();
+
+    bool ok = ScreenshotManager::captureToSD("/test_capture.bmp");
+    TEST_ASSERT_TRUE(ok);
+    TEST_ASSERT_FALSE(ScreenshotManager::isCaptureInProgress());
+
+    // Verify file was written to mock filesystem
+    auto it = mock_files.find("/test_capture.bmp");
+    TEST_ASSERT_TRUE(it != mock_files.end());
+
+    // Expected size: 54 header + 320 * 240 * 3 = 230454 bytes
+    TEST_ASSERT_EQUAL_UINT32(230454, it->second.size());
+
+    // Verify BMP magic bytes
+    TEST_ASSERT_EQUAL_UINT8('B', (uint8_t)it->second[0]);
+    TEST_ASSERT_EQUAL_UINT8('M', (uint8_t)it->second[1]);
+}
+
+void test_sd_screenshot_capture_no_sd(void) {
+    mock_sd_card_present = false;
+    mock_files.clear();
+
+    bool ok = ScreenshotManager::captureToSD("/test_fail.bmp");
+    TEST_ASSERT_FALSE(ok);
+    TEST_ASSERT_FALSE(ScreenshotManager::isCaptureInProgress());
+
+    auto it = mock_files.find("/test_fail.bmp");
+    TEST_ASSERT_TRUE(it == mock_files.end());
+}
+
 int main(int argc, char **argv) {
     UNITY_BEGIN();
     RUN_TEST(test_bmp_header_creation);
@@ -180,5 +233,9 @@ int main(int argc, char **argv) {
     RUN_TEST(test_rle16_compression_and_decompression_uniform);
     RUN_TEST(test_rle16_compression_and_decompression_mixed);
     RUN_TEST(test_screenshot_command_parsing);
+    RUN_TEST(test_filename_generation_timestamp);
+    RUN_TEST(test_filename_generation_fallback);
+    RUN_TEST(test_sd_screenshot_capture_success);
+    RUN_TEST(test_sd_screenshot_capture_no_sd);
     return UNITY_END();
 }

@@ -41,6 +41,20 @@
 #define BOOT_BUTTON_PIN 0
 #define SPEAKER_PIN 26
 
+// MicroSD Card SPI Settings (VSPI)
+#ifndef SD_CS_PIN
+#define SD_CS_PIN 5
+#endif
+#ifndef SD_SCK_PIN
+#define SD_SCK_PIN 18
+#endif
+#ifndef SD_MISO_PIN
+#define SD_MISO_PIN 19
+#endif
+#ifndef SD_MOSI_PIN
+#define SD_MOSI_PIN 23
+#endif
+
 // RGB LED Pins (Active LOW)
 #ifndef CYD_LED_RED
 #define CYD_LED_RED 4

@@ -1182,3 +1182,32 @@ uint16_t getTab() {
     }
     return 0;
 }
+
+void showUIStatusMessage(const char* message) {
+    lv_obj_t* scr = lv_scr_act();
+    if (!scr) return;
+
+    const auto& p = getCatppuccinFlavor(getCurrentThemeFlavor());
+
+    lv_obj_t* card = lv_obj_create(scr);
+    if (!card) return;
+
+    lv_obj_clear_flag(card, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_color(card, TO_LV_COLOR(p.mantle), LV_PART_MAIN);
+    lv_obj_set_style_border_color(card, TO_LV_COLOR(p.blue), LV_PART_MAIN);
+    lv_obj_set_style_border_width(card, 2, LV_PART_MAIN);
+    lv_obj_set_style_border_opa(card, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_radius(card, 8, LV_PART_MAIN);
+    lv_obj_set_size(card, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_all(card, 12, LV_PART_MAIN);
+    lv_obj_align(card, LV_ALIGN_CENTER, 0, 0);
+
+    lv_obj_t* label = lv_label_create(card);
+    if (label) {
+        lv_label_set_text(label, message);
+        lv_obj_set_style_text_color(label, TO_LV_COLOR(p.text), LV_PART_MAIN);
+        lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
+    }
+
+    lv_obj_del_delayed(card, 2000);
+}
