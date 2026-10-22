@@ -6,6 +6,7 @@
 #include "backlight_manager.h"
 #include "wifi_analyzer.h"
 #include "led_manager.h"
+#include "screenshot_manager.h"
 #include "ui.h"
 
 BacklightManager backlight(TFT_BL, 0, 10.0f);
@@ -19,6 +20,9 @@ void setup() {
 
     // Initialize Settings from NVS
     settings.begin();
+
+    // Initialize Screenshot Manager (USB Serial frame dump listener)
+    ScreenshotManager::init();
 
     // Initialize RGB Status LED
     led.begin();
@@ -46,6 +50,9 @@ void setup() {
 }
 
 void loop() {
+    // Check USB Serial for screenshot capture or tab navigation commands
+    ScreenshotManager::checkSerial();
+
     // Non-blocking RGB status LED updates
     led.update(millis());
 

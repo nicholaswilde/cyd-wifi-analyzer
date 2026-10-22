@@ -1135,3 +1135,16 @@ void refreshThemeUI() {
 
     updateUI();
 }
+
+void setTab(uint16_t index) {
+    if (s_tabview && index < 4) {
+        lv_tabview_set_act(s_tabview, index, LV_ANIM_OFF);
+    }
+}
+
+uint16_t getTab() {
+    if (s_tabview) {
+        return lv_tabview_get_tab_act(s_tabview);
+    }
+    return 0;
+}

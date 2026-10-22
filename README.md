@@ -111,7 +111,24 @@ task upload
 task monitor
 ```
 
-### 2. Run Host-Native Unit Tests
+### 2. Capture Real-Time Screenshots over USB Serial
+
+Capture pixel-perfect screenshots of the display over the USB serial connection at any time—even while active 2.4 GHz channel scanning is in progress:
+
+```bash
+# Capture the currently displayed screen
+task screenshot
+
+# Or switch to a specific tab before capturing (0=Spectrum, 1=Networks, 2=Channels, 3=Settings)
+task screenshot -- -t 0
+
+# Or capture all 4 application screens automatically in sequence
+task screenshot -- --all
+```
+
+Captured images are saved in `screenshots/` with a timestamped filename (e.g. `screenshots/screenshot_YYYYMMDD_HHMMSS.png`) and automatically update `screenshots/latest.png` for rapid inspection.
+
+### 3. Run Host-Native Unit Tests
 
 Unit tests execute natively on host systems (Linux/macOS) with mocked hardware interfaces:
 

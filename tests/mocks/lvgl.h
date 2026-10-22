@@ -51,6 +51,11 @@ typedef struct _lv_disp_t {
 
 inline void lv_init() {}
 inline lv_disp_t * lv_disp_get_default() { return nullptr; }
+inline int32_t lv_disp_get_hor_res(lv_disp_t *) { return 320; }
+inline int32_t lv_disp_get_ver_res(lv_disp_t *) { return 240; }
+inline void* lv_scr_act() { return nullptr; }
+inline void lv_obj_invalidate(void*) {}
+inline void lv_refr_now(void*) {}
 inline void lv_disp_draw_buf_init(lv_disp_draw_buf_t *, void *, void *, uint32_t) {}
 inline void lv_disp_drv_init(lv_disp_drv_t *) {}
 inline void lv_disp_drv_register(lv_disp_drv_t *) {}

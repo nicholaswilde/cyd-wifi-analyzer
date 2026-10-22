@@ -75,6 +75,32 @@ public:
         std::string p(prefix);
         return this->rfind(p, 0) == 0;
     }
+    bool equalsIgnoreCase(const String& other) const {
+        if (this->length() != other.length()) return false;
+        for (size_t i = 0; i < this->length(); i++) {
+            if (tolower((unsigned char)(*this)[i]) != tolower((unsigned char)other[i])) return false;
+        }
+        return true;
+    }
+    bool equalsIgnoreCase(const char* other) const {
+        return equalsIgnoreCase(String(other));
+    }
+    void trim() {
+        size_t start = this->find_first_not_of(" \t\r\n");
+        if (start == std::string::npos) {
+            *this = "";
+            return;
+        }
+        size_t end = this->find_last_not_of(" \t\r\n");
+        *this = this->substr(start, end - start + 1);
+    }
+    int toInt() const {
+        try {
+            return std::stoi(*this);
+        } catch (...) {
+            return 0;
+        }
+    }
     String substring(size_t from, size_t to = std::string::npos) const {
         if (from >= this->length()) return String("");
         if (to == std::string::npos || to > this->length()) {
@@ -101,6 +127,11 @@ public:
         vprintf(format, args);
         va_end(args);
     }
+    size_t write(const uint8_t *buffer, size_t size) { return size; }
+    size_t write(uint8_t data) { return 1; }
+    int available() { return 0; }
+    int read() { return -1; }
+    void flush() {}
 };
 
 extern SerialMock Serial;

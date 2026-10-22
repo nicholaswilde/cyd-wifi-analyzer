@@ -4,6 +4,7 @@
 #include "config/config.h"
 #include "settings_manager.h"
 #include "touch_manager.h"
+#include "screenshot_manager.h"
 
 TFT_eSPI tft = TFT_eSPI();
 
@@ -19,6 +20,10 @@ static void my_disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_col
     tft.setAddrWindow(area->x1, area->y1, w, h);
     tft.pushColors((uint16_t *)&color_p->full, w * h, true);
     tft.endWrite();
+
+    if (ScreenshotManager::isCaptureInProgress()) {
+        ScreenshotManager::onFlushTile(area->x1, area->y1, area->x2, area->y2, (const uint16_t*)&color_p->full);
+    }
 
     lv_disp_flush_ready(disp_drv);
 }

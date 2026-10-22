@@ -97,6 +97,11 @@ tasks:
     cmds:
       - pio device monitor
 
+  screenshot:
+    desc: Capture screenshot from connected CYD board over USB serial
+    cmds:
+      - uv run --with pyserial --with pillow python scripts/capture-serial-screenshot.py {{.CLI_ARGS}}
+
   test:
     desc: Run host-native unit tests
     cmds:
