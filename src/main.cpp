@@ -5,6 +5,7 @@
 #include "display.h"
 #include "backlight_manager.h"
 #include "wifi_analyzer.h"
+#include "led_manager.h"
 #include "ui.h"
 
 BacklightManager backlight(TFT_BL, 0, 10.0f);
@@ -18,6 +19,11 @@ void setup() {
 
     // Initialize Settings from NVS
     settings.begin();
+
+    // Initialize RGB Status LED
+    led.begin();
+    led.setEnabled(settings.getLedEnabled());
+    led.setBrightness(settings.getLedBrightness());
 
     // Initialize Backlight
     backlight.begin();
@@ -40,6 +46,9 @@ void setup() {
 }
 
 void loop() {
+    // Non-blocking RGB status LED updates
+    led.update(millis());
+
     // Let LVGL process UI events and render dirty areas
     lv_timer_handler();
 

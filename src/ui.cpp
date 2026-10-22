@@ -3,6 +3,7 @@
 #include "catppuccin.h"
 #include "backlight_manager.h"
 #include "settings_manager.h"
+#include "led_manager.h"
 #include "display.h"
 #include <cstdio>
 #include <cstring>
@@ -58,6 +59,8 @@ static lv_obj_t* s_switch_auto_bright = nullptr;
 static lv_obj_t* s_dropdown_interval = nullptr;
 static lv_obj_t* s_switch_passive = nullptr;
 static lv_obj_t* s_dropdown_rotation = nullptr;
+static lv_obj_t* s_switch_led = nullptr;
+static lv_obj_t* s_slider_led_bright = nullptr;
 static lv_obj_t* s_btn_reset = nullptr;
 static lv_obj_t* s_lbl_info = nullptr;
 
@@ -67,6 +70,8 @@ static lv_obj_t* s_lbl_auto_bright = nullptr;
 static lv_obj_t* s_lbl_interval = nullptr;
 static lv_obj_t* s_lbl_passive = nullptr;
 static lv_obj_t* s_lbl_rotation = nullptr;
+static lv_obj_t* s_lbl_led = nullptr;
+static lv_obj_t* s_lbl_led_bright = nullptr;
 
 static uint16_t scanIntervalToDropdownIdx(uint32_t ms) {
     if (ms <= 1000) return 0;
@@ -144,6 +149,20 @@ static void on_rotation_changed(lv_event_t* e) {
     }
 }
 
+static void on_led_toggle_changed(lv_event_t* e) {
+    lv_obj_t* sw = lv_event_get_target(e);
+    bool en = lv_obj_has_state(sw, LV_STATE_CHECKED);
+    settings.setLedEnabled(en);
+    led.setEnabled(en);
+}
+
+static void on_led_brightness_changed(lv_event_t* e) {
+    lv_obj_t* slider = lv_event_get_target(e);
+    int val = lv_slider_get_value(slider);
+    settings.setLedBrightness(val);
+    led.setBrightness(val);
+}
+
 static void on_reset_settings_clicked(lv_event_t* e) {
     settings.resetToDefaults();
 
@@ -174,6 +193,18 @@ static void on_reset_settings_clicked(lv_event_t* e) {
     if (s_dropdown_rotation) {
         lv_dropdown_set_selected(s_dropdown_rotation, orientationToDropdownIdx(settings.getScreenOrientation()));
         tft.setRotation(settings.getScreenOrientation());
+    }
+    led.setEnabled(settings.getLedEnabled());
+    led.setBrightness(settings.getLedBrightness());
+    if (s_switch_led) {
+        if (settings.getLedEnabled()) {
+            lv_obj_add_state(s_switch_led, LV_STATE_CHECKED);
+        } else {
+            lv_obj_clear_state(s_switch_led, LV_STATE_CHECKED);
+        }
+    }
+    if (s_slider_led_bright) {
+        lv_slider_set_value(s_slider_led_bright, settings.getLedBrightness(), LV_ANIM_OFF);
     }
     refreshThemeUI();
 }
@@ -854,9 +885,33 @@ void initUI() {
     lv_obj_align(s_dropdown_rotation, LV_ALIGN_TOP_LEFT, 125, 204);
     lv_obj_add_event_cb(s_dropdown_rotation, on_rotation_changed, LV_EVENT_VALUE_CHANGED, nullptr);
 
+    s_lbl_led = lv_label_create(s_tab_settings);
+    lv_label_set_text(s_lbl_led, "Status LED:");
+    lv_obj_set_style_text_color(s_lbl_led, TO_LV_COLOR(p.text), LV_PART_MAIN);
+    lv_obj_align(s_lbl_led, LV_ALIGN_TOP_LEFT, 10, 250);
+
+    s_switch_led = lv_switch_create(s_tab_settings);
+    if (settings.getLedEnabled()) {
+        lv_obj_add_state(s_switch_led, LV_STATE_CHECKED);
+    }
+    lv_obj_align(s_switch_led, LV_ALIGN_TOP_LEFT, 125, 246);
+    lv_obj_add_event_cb(s_switch_led, on_led_toggle_changed, LV_EVENT_VALUE_CHANGED, nullptr);
+
+    s_lbl_led_bright = lv_label_create(s_tab_settings);
+    lv_label_set_text(s_lbl_led_bright, "LED Brightness:");
+    lv_obj_set_style_text_color(s_lbl_led_bright, TO_LV_COLOR(p.text), LV_PART_MAIN);
+    lv_obj_align(s_lbl_led_bright, LV_ALIGN_TOP_LEFT, 10, 290);
+
+    s_slider_led_bright = lv_slider_create(s_tab_settings);
+    lv_slider_set_range(s_slider_led_bright, 10, 255);
+    lv_slider_set_value(s_slider_led_bright, settings.getLedBrightness(), LV_ANIM_OFF);
+    lv_obj_set_size(s_slider_led_bright, 150, 12);
+    lv_obj_align(s_slider_led_bright, LV_ALIGN_TOP_LEFT, 125, 292);
+    lv_obj_add_event_cb(s_slider_led_bright, on_led_brightness_changed, LV_EVENT_VALUE_CHANGED, nullptr);
+
     s_btn_reset = lv_btn_create(s_tab_settings);
     lv_obj_set_size(s_btn_reset, 265, 34);
-    lv_obj_align(s_btn_reset, LV_ALIGN_TOP_LEFT, 10, 250);
+    lv_obj_align(s_btn_reset, LV_ALIGN_TOP_LEFT, 10, 330);
     lv_obj_set_style_bg_color(s_btn_reset, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
     lv_obj_add_event_cb(s_btn_reset, on_reset_settings_clicked, LV_EVENT_CLICKED, nullptr);
 
@@ -868,7 +923,7 @@ void initUI() {
     s_lbl_info = lv_label_create(s_tab_settings);
     lv_label_set_text(s_lbl_info, "ESP32 CYD Wi-Fi Analyzer\nEngine: LVGL v8 + Catppuccin RGB565");
     lv_obj_set_style_text_color(s_lbl_info, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
-    lv_obj_align(s_lbl_info, LV_ALIGN_TOP_LEFT, 10, 296);
+    lv_obj_align(s_lbl_info, LV_ALIGN_TOP_LEFT, 10, 376);
 }
 
 void updateUI() {
@@ -1073,6 +1128,8 @@ void refreshThemeUI() {
     if (s_lbl_interval) lv_obj_set_style_text_color(s_lbl_interval, TO_LV_COLOR(p.text), LV_PART_MAIN);
     if (s_lbl_passive) lv_obj_set_style_text_color(s_lbl_passive, TO_LV_COLOR(p.text), LV_PART_MAIN);
     if (s_lbl_rotation) lv_obj_set_style_text_color(s_lbl_rotation, TO_LV_COLOR(p.text), LV_PART_MAIN);
+    if (s_lbl_led) lv_obj_set_style_text_color(s_lbl_led, TO_LV_COLOR(p.text), LV_PART_MAIN);
+    if (s_lbl_led_bright) lv_obj_set_style_text_color(s_lbl_led_bright, TO_LV_COLOR(p.text), LV_PART_MAIN);
     if (s_btn_reset) lv_obj_set_style_bg_color(s_btn_reset, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
     if (s_lbl_info) lv_obj_set_style_text_color(s_lbl_info, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
 

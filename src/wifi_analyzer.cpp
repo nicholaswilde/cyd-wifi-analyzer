@@ -155,6 +155,9 @@ bool WifiAnalyzer::triggerScan() {
         _isScanning = false;
         return false;
     }
+    if (!_isTracking) {
+        led.setState(LedManager::STATE_SCANNING);
+    }
     return true;
 #else
     return false;
@@ -202,6 +205,7 @@ bool WifiAnalyzer::update() {
             recordTargetSample((int8_t)RSSI_FLOOR);
         }
         WiFi.scanDelete();
+        led.setState(getTrackerLedStatus());
         return true;
     }
 
@@ -240,6 +244,7 @@ bool WifiAnalyzer::update() {
 
     processScanResults();
     WiFi.scanDelete();
+    led.setState(getEnvironmentStatus());
     return true;
 #else
     return false;
@@ -330,4 +335,33 @@ const char* WifiAnalyzer::getTargetProximityStr() const {
     if (_targetRssi >= -75) return "Moderate Distance";
     if (_targetRssi >= -85) return "Weak / Distant";
     return "Faint / Out of Range";
+}
+
+LedManager::State WifiAnalyzer::getEnvironmentStatus() const {
+    if (_accessPoints.empty()) {
+        return LedManager::STATE_CLEAN;
+    }
+    uint16_t maxAps = 0;
+    for (int c = 0; c < CHANNEL_COUNT; c++) {
+        if (_channels[c].apCount > maxAps) {
+            maxAps = _channels[c].apCount;
+        }
+    }
+    if (maxAps > 5) {
+        return LedManager::STATE_CONGESTED_RED;
+    } else if (maxAps > 2) {
+        return LedManager::STATE_CONGESTED_YELLOW;
+    } else {
+        return LedManager::STATE_CLEAN;
+    }
+}
+
+LedManager::State WifiAnalyzer::getTrackerLedStatus() const {
+    if (_targetRssi >= -65) {
+        return LedManager::STATE_CLEAN;
+    } else if (_targetRssi >= -80) {
+        return LedManager::STATE_CONGESTED_YELLOW;
+    } else {
+        return LedManager::STATE_CONGESTED_RED;
+    }
 }

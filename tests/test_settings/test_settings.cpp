@@ -22,6 +22,8 @@ void test_settings_initial_defaults(void) {
     TEST_ASSERT_EQUAL_UINT32(SCAN_INTERVAL_MS, sm.getScanIntervalMs());
     TEST_ASSERT_FALSE(sm.getPassiveScan());
     TEST_ASSERT_EQUAL(DEFAULT_SCREEN_ORIENTATION, sm.getScreenOrientation());
+    TEST_ASSERT_TRUE(sm.getLedEnabled());
+    TEST_ASSERT_EQUAL(DEFAULT_LED_BRIGHTNESS, sm.getLedBrightness());
 }
 
 void test_settings_setters_and_persistence(void) {
@@ -61,6 +63,18 @@ void test_settings_setters_and_persistence(void) {
     sm.setScreenOrientation(3);
     TEST_ASSERT_EQUAL(3, sm.getScreenOrientation());
 
+    sm.setLedEnabled(false);
+    TEST_ASSERT_FALSE(sm.getLedEnabled());
+
+    sm.setLedBrightness(180);
+    TEST_ASSERT_EQUAL(180, sm.getLedBrightness());
+
+    // Test LED brightness clamping
+    sm.setLedBrightness(-20);
+    TEST_ASSERT_EQUAL(0, sm.getLedBrightness());
+    sm.setLedBrightness(300);
+    TEST_ASSERT_EQUAL(255, sm.getLedBrightness());
+
     // Simulate reboot: new instance calling begin()
     SettingsManager rebootedSm;
     rebootedSm.begin();
@@ -71,6 +85,8 @@ void test_settings_setters_and_persistence(void) {
     TEST_ASSERT_EQUAL_UINT32(500, rebootedSm.getScanIntervalMs());
     TEST_ASSERT_TRUE(rebootedSm.getPassiveScan());
     TEST_ASSERT_EQUAL(3, rebootedSm.getScreenOrientation());
+    TEST_ASSERT_FALSE(rebootedSm.getLedEnabled());
+    TEST_ASSERT_EQUAL(255, rebootedSm.getLedBrightness());
 }
 
 void test_settings_reset_to_defaults(void) {
@@ -78,18 +94,24 @@ void test_settings_reset_to_defaults(void) {
     sm.setThemeFlavor(CATPPUCCIN_FRAPPE);
     sm.setBrightness(40);
     sm.setAutoBrightness(true);
+    sm.setLedEnabled(false);
+    sm.setLedBrightness(50);
 
     sm.resetToDefaults();
 
     TEST_ASSERT_EQUAL(DEFAULT_THEME_FLAVOR, sm.getThemeFlavor());
     TEST_ASSERT_EQUAL(100, sm.getBrightness());
     TEST_ASSERT_FALSE(sm.getAutoBrightness());
+    TEST_ASSERT_TRUE(sm.getLedEnabled());
+    TEST_ASSERT_EQUAL(DEFAULT_LED_BRIGHTNESS, sm.getLedBrightness());
 
     // Verify NVS cleared
     SettingsManager rebootedSm;
     rebootedSm.begin();
     TEST_ASSERT_EQUAL(DEFAULT_THEME_FLAVOR, rebootedSm.getThemeFlavor());
     TEST_ASSERT_EQUAL(100, rebootedSm.getBrightness());
+    TEST_ASSERT_TRUE(rebootedSm.getLedEnabled());
+    TEST_ASSERT_EQUAL(DEFAULT_LED_BRIGHTNESS, rebootedSm.getLedBrightness());
 }
 
 int main(void) {

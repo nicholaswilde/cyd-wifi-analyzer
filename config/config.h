@@ -41,4 +41,21 @@
 #define BOOT_BUTTON_PIN 0
 #define SPEAKER_PIN 26
 
+// RGB LED Pins (Active LOW)
+#ifndef CYD_LED_RED
+#define CYD_LED_RED 4
+#endif
+
+#ifndef CYD_LED_GREEN
+#define CYD_LED_GREEN 16
+#endif
+
+#ifndef CYD_LED_BLUE
+#define CYD_LED_BLUE 17
+#endif
+
+// Default LED Settings
+#define DEFAULT_LED_ENABLED true
+#define DEFAULT_LED_BRIGHTNESS 255
+
 #endif // CONFIG_H

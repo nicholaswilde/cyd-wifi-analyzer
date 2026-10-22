@@ -13,7 +13,9 @@ SettingsManager::SettingsManager()
       _autoBrightness(false),
       _scanIntervalMs(SCAN_INTERVAL_MS),
       _passiveScan(PASSIVE_SCAN),
-      _screenOrientation(DEFAULT_SCREEN_ORIENTATION) {}
+      _screenOrientation(DEFAULT_SCREEN_ORIENTATION),
+      _ledEnabled(DEFAULT_LED_ENABLED),
+      _ledBrightness(DEFAULT_LED_BRIGHTNESS) {}
 
 void SettingsManager::begin() {
     Preferences prefs;
@@ -24,6 +26,8 @@ void SettingsManager::begin() {
         _scanIntervalMs = prefs.getUInt("scan_interval", SCAN_INTERVAL_MS);
         _passiveScan = prefs.getBool("passive_scan", PASSIVE_SCAN);
         _screenOrientation = prefs.getInt("orientation", DEFAULT_SCREEN_ORIENTATION);
+        _ledEnabled = prefs.getBool("led_en", DEFAULT_LED_ENABLED);
+        _ledBrightness = prefs.getInt("led_bright", DEFAULT_LED_BRIGHTNESS);
         prefs.end();
     }
 }
@@ -85,6 +89,26 @@ void SettingsManager::setScreenOrientation(int orientation) {
     }
 }
 
+void SettingsManager::setLedEnabled(bool enabled) {
+    _ledEnabled = enabled;
+    Preferences prefs;
+    if (prefs.begin("wifi_analyzer", false)) {
+        prefs.putBool("led_en", _ledEnabled);
+        prefs.end();
+    }
+}
+
+void SettingsManager::setLedBrightness(int brightness) {
+    if (brightness < 0) brightness = 0;
+    if (brightness > 255) brightness = 255;
+    _ledBrightness = brightness;
+    Preferences prefs;
+    if (prefs.begin("wifi_analyzer", false)) {
+        prefs.putInt("led_bright", _ledBrightness);
+        prefs.end();
+    }
+}
+
 void SettingsManager::resetToDefaults() {
     _themeFlavor = DEFAULT_THEME_FLAVOR;
     _brightness = 100;
@@ -92,6 +116,8 @@ void SettingsManager::resetToDefaults() {
     _scanIntervalMs = SCAN_INTERVAL_MS;
     _passiveScan = PASSIVE_SCAN;
     _screenOrientation = DEFAULT_SCREEN_ORIENTATION;
+    _ledEnabled = DEFAULT_LED_ENABLED;
+    _ledBrightness = DEFAULT_LED_BRIGHTNESS;
 
     Preferences prefs;
     if (prefs.begin("wifi_analyzer", false)) {

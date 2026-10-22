@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include "config/config.h"
+#include "led_manager.h"
 
 #ifdef NATIVE_TEST
 #include "Arduino.h"
@@ -61,6 +62,9 @@ public:
     const std::vector<uint8_t>& getBestChannels() const { return _bestChannels; }
     uint32_t getLastScanDurationMs() const { return _lastScanDurationMs; }
     uint32_t getScanCount() const { return _scanCount; }
+
+    LedManager::State getEnvironmentStatus() const;
+    LedManager::State getTrackerLedStatus() const;
 
     const std::vector<int8_t>& getRssiHistory(const String& bssidStr) const;
     void recordRssiSample(const String& bssidStr, int8_t rssi);

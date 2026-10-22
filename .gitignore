@@ -82,6 +82,17 @@ lcov_raw.info
 
 # Agentic tool caches & indexes
 .codegraph/
-.serena/
 .rtk/*
 !.rtk/filters.toml
+
+.serena/cache/
+.serena/logs/
+.serena/project.local.yml
+dist/
+
+# Python Virtualenv
+.venv/
+venv/
+
+# Local Configuration Secrets
+config/secrets.h

@@ -33,6 +33,12 @@ public:
     int getScreenOrientation() const { return _screenOrientation; }
     void setScreenOrientation(int orientation);
 
+    bool getLedEnabled() const { return _ledEnabled; }
+    void setLedEnabled(bool enabled);
+
+    int getLedBrightness() const { return _ledBrightness; }
+    void setLedBrightness(int brightness);
+
     void resetToDefaults();
 
 private:
@@ -42,6 +48,8 @@ private:
     uint32_t _scanIntervalMs;
     bool _passiveScan;
     int _screenOrientation;
+    bool _ledEnabled;
+    int _ledBrightness;
 };
 
 extern SettingsManager settings;
