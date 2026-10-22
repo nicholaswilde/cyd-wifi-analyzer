@@ -1,0 +1,113 @@
+---
+version: '3'
+
+dotenv: ['.env']
+
+vars:
+  PIO_ENV: '{{.PIO_ENV | default "cyd_28r"}}'
+
+tasks:
+  build:
+    desc: Build firmware for default environment ({{.PIO_ENV}})
+    cmds:
+      - pio run -e {{.PIO_ENV}}
+
+  build:cyd_28r:
+    desc: Build firmware for 2.8" Resistive Touch CYD (ILI9341 / XPT2046)
+    cmds:
+      - pio run -e cyd_28r
+
+  build:cyd_28r_inv:
+    desc: Build firmware for 2.8" Resistive Touch CYD (Inverted)
+    cmds:
+      - pio run -e cyd_28r_inv
+
+  build:cyd_28c:
+    desc: Build firmware for 2.8" Capacitive Touch CYD (JC2432W328C)
+    cmds:
+      - pio run -e cyd_28c
+
+  build:cyd_28c_inv:
+    desc: Build firmware for 2.8" Capacitive Touch CYD (Inverted)
+    cmds:
+      - pio run -e cyd_28c_inv
+
+  build:cyd_35c:
+    desc: Build firmware for 3.5" Capacitive Touch CYD (ESP32-3248S035C)
+    cmds:
+      - pio run -e cyd_35c
+
+  build:cyd_35c_inv:
+    desc: Build firmware for 3.5" Capacitive Touch CYD (Inverted)
+    cmds:
+      - pio run -e cyd_35c_inv
+
+  upload:
+    desc: Upload firmware for default environment
+    cmds:
+      - pio run -e {{.PIO_ENV}} --target upload
+
+  upload:cyd_28r:
+    desc: Upload firmware for cyd_28r
+    cmds:
+      - pio run -e cyd_28r --target upload
+
+  upload:cyd_28c:
+    desc: Upload firmware for cyd_28c
+    cmds:
+      - pio run -e cyd_28c --target upload
+
+  upload:cyd_35c:
+    desc: Upload firmware for cyd_35c
+    cmds:
+      - pio run -e cyd_35c --target upload
+
+  eau:
+    desc: Erase flash and upload firmware
+    cmds:
+      - pio run -e {{.PIO_ENV}} -t erase -t upload
+
+  eau:cyd_28r:
+    desc: Erase flash and upload for cyd_28r
+    cmds:
+      - pio run -e cyd_28r -t erase -t upload
+
+  eau:cyd_35c:
+    desc: Erase flash and upload for cyd_35c
+    cmds:
+      - pio run -e cyd_35c -t erase -t upload
+
+  uam:
+    desc: Upload firmware and start serial monitor
+    cmds:
+      - pio run -e {{.PIO_ENV}} -t upload -t monitor
+
+  uam:cyd_28r:
+    desc: Upload and monitor for cyd_28r
+    cmds:
+      - pio run -e cyd_28r -t upload -t monitor
+
+  uam:cyd_35c:
+    desc: Upload and monitor for cyd_35c
+    cmds:
+      - pio run -e cyd_35c -t upload -t monitor
+
+  monitor:
+    desc: Start serial monitor
+    cmds:
+      - pio device monitor
+
+  test:
+    desc: Run host-native unit tests
+    cmds:
+      - pio test -e native
+
+  check:
+    desc: Run static code analysis
+    cmds:
+      - pio check -e {{.PIO_ENV}}
+
+  clean:
+    desc: Clean build outputs
+    cmds:
+      - pio run -t clean
