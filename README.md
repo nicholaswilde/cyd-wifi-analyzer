@@ -1,81 +1,175 @@
 # CYD WiFi Analyzer
 [![Coveralls](https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Fcoveralls.io%2Frepos%2Fgithub%2Fnicholaswilde%2Fcyd-wifi-analyzer%2Fbadge.svg%3Fbranch%3Dmain&query=%2F%2F*%5Blocal-name()%3D'text'%5D%5Blast()%5D&label=Coveralls&style=for-the-badge&logo=coveralls)](https://coveralls.io/github/nicholaswilde/cyd-wifi-analyzer?branch=main)
 [![task](https://img.shields.io/badge/Task-Enabled-brightgreen?style=for-the-badge&logo=task&logoColor=white)](https://taskfile.dev/#/)
+[![test](https://img.shields.io/github/actions/workflow/status/nicholaswilde/cyd-wifi-analyzer/test.yaml?label=test&style=for-the-badge&branch=main&logo=github-actions)](https://github.com/nicholaswilde/cyd-wifi-analyzer/actions/workflows/test.yaml)
+[![ci](https://img.shields.io/github/actions/workflow/status/nicholaswilde/cyd-wifi-analyzer/ci.yaml?label=ci&style=for-the-badge&logo=github-actions)](https://github.com/nicholaswilde/cyd-wifi-analyzer/actions/workflows/ci.yaml)
+
+An interactive, touch-screen-enabled 2.4 GHz spectrum analyzer, access point catalog, and signal tracker designed for the **ESP32 Cheap Yellow Display (CYD)** hardware family. Powered by **LVGL v8** and styled with the **Catppuccin** color system.
 
 > [!WARNING]
-> This project is currently in a `v0.X.X` development stage. Features and configurations are subject to change, and breaking changes may be introduced at any time.
+> This project is currently in an active `v0.X.X` development stage. Features, interfaces, and configurations are subject to continuous improvement.
+
+---
 
 ## :star: Features
 
+- **2.4 GHz Overlapping Parabolic Spectrum Visualizer**:
+  - Replicates classic RF analyzer visuals with true mathematical parabolic channel response curves across channels 1–14 (22 MHz channel spread, spanning $\pm 2$ channels around the center frequency).
+  - Individual Catppuccin color accents assigned to each channel.
+  - Floating apex badges showing SSID and peak RSSI (dBm) for the strongest detected network per channel.
+  - Live summary banner highlighting total APs and recommended clean / low-noise channels.
+
+- **Access Point Catalog (Networks Tab)**:
+  - Scrollable catalog showing all detected 2.4 GHz networks.
+  - Displays SSID, BSSID (MAC Address), Channel, RSSI with visual signal bar, and Security/Auth type (Open, WEP, WPA, WPA2, WPA3).
+  - Automatic detection and labeling of hidden networks (`[Hidden Network]`).
+
+- **Network Detail Inspector Modal**:
+  - Interactive popup modal triggered by tapping any network item in the catalog.
+  - Comprehensive network telemetry: SSID, BSSID, Signal Quality (%) and RSSI (dBm), Channel and exact center frequency (e.g., Ch 6 $\rightarrow$ 2437 MHz), Auth Mode, and Hidden status.
+  - 8-sample rolling historical RSSI line chart (`lv_chart`) for live signal fluctuation analysis.
+  - Quick-launch button to enter dedicated **Tracker Mode**.
+
+- **Target AP Signal Locator & Tracking Mode**:
+  - Dedicated hunting/tracking mode focused on locating a specific Access Point.
+  - High-cadence single-channel rapid scanning targeting exclusively the chosen AP's channel (~120ms dwell time vs. 5.6s across 14 channels, ~50ms re-scan interval $\rightarrow$ ~6 Hz update rate).
+  - 270° radial arc signal meter gauge (`lv_arc`) with Catppuccin color styling.
+  - Large real-time dBm readout and proximity descriptors (*Very Close / Immediate*, *Close Range (Strong)*, *Moderate Distance*, *Weak / Distant*, *Faint / Out of Range*).
+  - Real-time 20-sample rolling RSSI history line chart with signal trend indicator (**WARMER** / **COLDER** / **STABLE**).
+  - Audio/chirp feedback on CYD onboard speaker amplifier (GPIO 26) with pitch scaling from 400 Hz to 2500 Hz based on proximity/dBm, with an on-screen mute toggle.
+  - Real-time physical RGB LED proximity feedback.
+  - Clean exit button to return to the standard multi-tab spectrum analyzer.
+
+- **Channel Interference Matrix & Rating Table (Channels Tab)**:
+  - Full 14-channel matrix displaying AP density, peak dBm, and cumulative co-channel/adjacent channel interference noise scores.
+  - Evaluates channel health into ratings: **Clean** (zero noise), **Good** ($\le 2$ APs), **Fair** (3–5 APs), or **Congested** ($> 5$ APs).
+  - Real-time ranking of recommended clean channels in the 1–11 regulatory range.
+
+- **Catppuccin RGB565 Theming**:
+  - Full runtime switching across 4 Catppuccin flavors: **Mocha**, **Macchiato**, **Frappé**, and **Latte**.
+  - All tabs, widgets, modals, charts, and channel curves redraw seamlessly in the active palette.
+
+- **Onboard Active-Low RGB Status LED**:
+  - Physical visual feedback using the onboard RGB LED (GPIO 4/16/17 on 2.8", GPIO 4/17/16 on 3.5").
+  - Status cues:
+    - **Blue pulse/blink**: Wi-Fi channel scan currently in progress.
+    - **Green solid**: Scan completed with low interference / clean recommended channels.
+    - **Yellow/Red solid**: Moderate or heavy channel congestion / RF noise.
+    - **Tracker mode**: Green when near, Yellow when moderate, Red when distant.
+  - Settings controls to toggle the LED on/off and adjust LED brightness with gamma 2.2 scaling.
+
+- **LDR Ambient Light Auto-Dimming**:
+  - Automatic backlight brightness adjustment driven by the onboard LDR photoresistor (GPIO 34).
+  - Exponential Moving Average (EMA) light filtering with natural $\gamma = 2.2$ gamma-corrected PWM fading via `BacklightManager`.
+
+- **Persistent Configuration via NVS (SettingsManager)**:
+  - Backed by ESP32 `Preferences` non-volatile storage.
+  - Remembers theme flavor, backlight brightness, auto-dimming toggle, scan interval, passive/active scan mode, screen orientation, and status LED settings across reboots.
+  - One-touch factory defaults restoration button.
+
+---
+
 ## :hammer_and_wrench: Hardware Requirements
 
-- **ESP32 Cheap Yellow Device (CYD)**:
-  - **CYD 2.8" (Resistive)**: ESP32-2432S028R — 2.8″ 320×240 ILI9341 LCD with XPT2046 resistive touch.
-  - **CYD 2.8" (Capacitive)**: ESP32-JC2432W328C — 2.8″ 320×240 ST7789 LCD with CST816 capacitive touch.
-  - **CYD 2.8" NodeMiner / Rockbase (Resistive)**: ESP32-2432S028 ("NM") — 2.8″ 320×240 ST7789 LCD with XPT2046 resistive touch.
-  - **CYD 3.5" (Capacitive)**: ESP32-3248S035C — 3.5″ 480×320 ST7796 LCD with GT911/CST820 capacitive touch.
+- **ESP32 Cheap Yellow Display (CYD)**:
+  - **CYD 2.8" (Resistive)**: `ESP32-2432S028R` — 2.8″ 320×240 ILI9341 LCD with XPT2046 resistive touch.
+  - **CYD 2.8" (Capacitive)**: `ESP32-JC2432W328C` — 2.8″ 320×240 ST7789 LCD with CST816 capacitive touch.
+  - **CYD 2.8" NodeMiner / Rockbase (Resistive)**: `ESP32-2432S028` ("NM") — 2.8″ 320×240 ST7789 LCD with XPT2046 resistive touch.
+  - **CYD 3.5" (Capacitive)**: `ESP32-3248S035C` — 3.5″ 480×320 ST7796 LCD with GT911/CST820 capacitive touch.
+- **Onboard Peripherals**:
+  - **RGB Status LED**: Active-low LED on GPIO 4 (Red), 16 (Green), 17 (Blue) on 2.8" boards; GPIO 4 (Red), 17 (Green), 16 (Blue) on 3.5" boards.
+  - **Ambient Light Sensor (LDR)**: Photoresistor on GPIO 34.
+  - **Backlight Control**: PWM on GPIO 21 (or GPIO 27 on capacitive boards).
+  - **Speaker / Buzzer**: Hardwired to GPIO 26 (`DAC_CHANNEL_2`).
+- **Power & Programming**: Micro-USB or USB-C cable capable of supplying $\ge 500\text{ mA}$.
+
+---
 
 ## :rocket: Getting Started
 
-### 1. Quick Install (Pre-compiled Binaries)
+### 1. Build and Flash from Source
 
-### 2. Build from Source
-
-#### Secrets Setup
-
-#### Configuration
-
-#### Build & Upload
+This project uses [PlatformIO](https://platformio.org/) and [Task](https://taskfile.dev/):
 
 ```bash
-task build    # Compile firmware
-task upload   # Flash to the connected CYD board
-task monitor  # Open serial monitor (115200 baud)
+# Clone the repository
+git clone https://github.com/nicholaswilde/cyd-wifi-analyzer.git
+cd cyd-wifi-analyzer
+
+# Build firmware for the default board (cyd_28r)
+task build
+
+# Or build for a specific board environment
+task build:cyd_28r      # 2.8" Resistive Touch (ILI9341)
+task build:cyd_28c      # 2.8" Capacitive Touch (JC2432W328C)
+task build:cyd_35c      # 3.5" Capacitive Touch (ESP32-3248S035C)
+
+# Upload firmware to your connected CYD board
+task upload
+
+# Open the serial monitor (115200 baud)
+task monitor
+```
+
+### 2. Run Host-Native Unit Tests
+
+Unit tests execute natively on host systems (Linux/macOS) with mocked hardware interfaces:
+
+```bash
+task test
+# or: pio test -e native
 ```
 
 ---
 
 ## :gear: Settings Tab Reference
 
+The **Settings Tab** on the device provides touch controls for all runtime parameters:
+
+| Setting | Control | Options / Range | Default | Description |
+|---|---|---|---|---|
+| **Theme Flavor** | Dropdown | `Mocha`, `Macchiato`, `Frappe`, `Latte` | `Mocha` | Changes the active Catppuccin color palette across the entire UI. |
+| **Brightness** | Slider | `10%` to `100%` | `100%` | Sets manual TFT display backlight brightness with gamma 2.2 correction. |
+| **Auto Bright** | Toggle Switch | `ON` / `OFF` | `OFF` | Enables dynamic ambient light backlight adaptation via the onboard LDR sensor. |
+| **Scan Interval** | Dropdown | `1s`, `2s`, `3s`, `5s` | `3s` | Sets the idle delay between full 14-channel spectrum scan sweeps. |
+| **Passive Scan** | Toggle Switch | `ON` / `OFF` | `OFF` | Toggles between active probe scanning and passive listening. |
+| **Orientation** | Dropdown | `Landscape (0°)`, `Landscape (180°)` | `Landscape (0°)` | Rotates screen orientation by 180° for upside-down mounting. |
+| **Status LED** | Toggle Switch | `ON` / `OFF` | `ON` | Enables or disables physical RGB status LED indications. |
+| **LED Brightness** | Slider | `10` to `255` | `255` | Sets the maximum brightness of the RGB status LED. |
+| **Reset Defaults** | Push Button | Tap to execute | — | Clears NVS preferences and restores safe factory configuration. |
+
+---
+
 ## :wrench: Troubleshooting
 
-If you encounter any issues with your screen or the software, please review the solutions below or [create an issue](https://github.com/nicholaswilde/cyd-weather-station/issues) on GitHub if you are still stuck.
+If you encounter issues with your display, touch, or software, review the solutions below or [create an issue](https://github.com/nicholaswilde/cyd-wifi-analyzer/issues) on GitHub.
 
 ### Inverted Colors
-If the colors on your display appear inverted (for example, dark themes like `Mocha`, `Macchiato`, or `Frappe` display with bright white backgrounds while the light `Latte` theme appears dark), this is due to hardware display controller differences between CYD batches. You can easily resolve it by:
-- Flashing the alternative inversion release for your board (e.g., `cyd_28r` vs `cyd_28r_inv`, `cyd_28c` vs `cyd_28c_inv`, `cyd_28_nm` vs `cyd_28_nm_inv`, or `cyd_35c` vs `cyd_35c_inv`).
-- Or, if building from source, switching to the corresponding `_inv` environment in PlatformIO or toggling the `-D TFT_INVERSION_ON=1` build flag.
+If colors appear inverted (e.g. dark themes like `Mocha` show bright white backgrounds), your display batch uses inverted panel logic. Flash the corresponding `_inv` environment:
+- `cyd_28r_inv`, `cyd_28c_inv`, `cyd_28_nm_inv`, or `cyd_35c_inv`
+- Or append `-D TFT_INVERSION_ON=1` to your build flags.
 
 ### Garbled or Scrambled Screen
-If the UI renders distorted, noisy, or with stretched fonts across the display, ensure you flashed the firmware matching your exact display size and controller:
-- **2.8" Resistive (ILI9341)**: `cyd_28r` / `cyd_28r_inv` (240x320)
-- **2.8" Capacitive (ESP32-2432W328C)**: `cyd_28c` / `cyd_28c_inv` (240x320)
-- **2.8" Resistive NodeMiner / ST7789 (`ESP32-2432S028`)**: `cyd_28_nm` / `cyd_28_nm_inv` (240x320)
-- **3.5" Capacitive (ST7796)**: `cyd_35c` / `cyd_35c_inv` (320x480)
+If the UI is scrambled or distorted, ensure the firmware environment matches your board's display controller and resolution:
+- **2.8" Resistive (ILI9341)**: `cyd_28r` / `cyd_28r_inv` (320x240 landscape)
+- **2.8" Capacitive (JC2432W328C)**: `cyd_28c` / `cyd_28c_inv` (320x240 landscape)
+- **2.8" NodeMiner / ST7789 (`ESP32-2432S028`)**: `cyd_28_nm` / `cyd_28_nm_inv` (320x240 landscape)
+- **3.5" Capacitive (ST7796)**: `cyd_35c` / `cyd_35c_inv` (480x320 landscape)
 
-Flashing a 3.5" image onto a 2.8" display (or vice versa) will result in garbled screens due to framebuffer and resolution mismatches.
+### Partial Screen Rendering / 80px Noise Band
+If the display renders across 240 columns and the remaining 80 columns show uninitialized static noise, your board uses an **ST7789** controller. Use the `cyd_28_nm` or `cyd_28_nm_inv` environments in `platformio.ini`.
 
-### Partial Screen Rendering / 80px Noise Band (1/4 Screen)
-If the UI displays across only 240 columns while the right 80 columns show uninitialized static noise, your board likely has an **ST7789** controller or an alternative **ILI9341 clone** controller (common on `ESP32-2432S028` boards manufactured under "NM" / NodeMiner or 2-USB variants). Pre-configured environments `cyd_28_nm` and `cyd_28_nm_inv` are available for these boards directly in `platformio.ini`. See the detailed guide in [docs/hardware-variants.md](docs/hardware-variants.md) for background and build configurations (`ILI9341_2_DRIVER` or `ST7789_DRIVER`).
+### Flashing & Bootloader Mode
+- If flashing manually via serial (`esptool.py`), the ESP32 might remain in bootloader mode after writing. Press the physical **RESET / EN** button (or power cycle) to boot into the application.
+- Wiping flash via `pio run -t erase` will restore all NVS settings to factory defaults.
 
-### Flashing, Erasing Flash & Boot Reset
-- **Erasing Flash**: Running a full `erase_flash` wipes all non-volatile storage (NVS), which erases previously saved Wi-Fi credentials and configuration. The device will reboot into Access Point (`192.168.4.1`) setup mode. Reflashing without erasing preserves your Wi-Fi credentials and saved runtime settings.
-- **Bootloader Mode**: If flashing manually via serial (`esptool.py`), the ESP32 might remain in bootloader mode after writing. Press the physical **RESET / EN** button (or power cycle the unit) to boot into the application.
+### Touch Accuracy (Resistive Screens)
+The 2.8" resistive variant (`cyd_28r`) uses an XPT2046 resistive touch controller. Ensure touches are made firmly with a stylus or fingernail. Capacitive variants (`cyd_28c`, `cyd_35c`) use true capacitive touch and do not require pressure.
 
-### RGB / BGR Swap
-If your screen has red and blue colors swapped, it means the display expects a BGR color order instead of RGB. A dedicated release is not currently provided for this variation, but you can fix it by building from source: simply append `-D TFT_RGB_ORDER=TFT_BGR` to your environment's `build_flags` in `platformio.ini`.
+### Power Delivery & Stability
+Wi-Fi scanning triggers high current bursts ($\sim 250\text{--}350\text{ mA}$) on the 2.4 GHz RF radio. Intermittent reboots or brownouts indicate inadequate power. Ensure you are using a quality USB power supply and cable capable of supplying steady current.
 
-### Touch Calibration (Resistive Screens)
-The 2.8" resistive version (`cyd_28r`) uses a resistive touch layer which can sometimes be misaligned or mapped to inverted coordinates depending on the batch. If touches are registering in the wrong place, you may need to run a touch calibration sketch to determine the correct offsets for your specific screen. Capacitive variants (`cyd_28c`, `cyd_35c`) do not require calibration.
-
-### Backlight Pin and Polarity Differences
-If your screen is completely black but the board seems to be running, it might be a backlight pin mapping issue. While most boards use GPIO 21 or 27 for the backlight (`TFT_BL`), some obscure batches might map it differently. Furthermore, some boards require `TFT_BACKLIGHT_ON=LOW` instead of `HIGH`. 
-
-### Different Driver Chips
-Most 2.8" screens use the `ILI9341` driver. However, occasionally manufacturers substitute it with an `ST7789V` driver without changing the board's appearance. This will result in a completely blank or noisy screen until you change the driver flag in your `platformio.ini` from `-D ILI9341_DRIVER=1` to `-D ST7789_DRIVER=1`.
-
-### Power Delivery Glitches
-Intermittent touch issues, screen flickering, or spontaneous reboots are frequently caused by inadequate power. Ensure you are using a high-quality USB power supply and a good USB cable that can supply the burst current the ESP32 and backlight need simultaneously.
+---
 
 ## :balance_scale: License
 
@@ -83,4 +177,4 @@ Intermittent touch issues, screen flickering, or spontaneous reboots are frequen
 
 ## :writing_hand: Author
 
-This project was started in 2026 by [Nicholas Wilde](https://github.com/nicholaswilde/).
+This project was created in 2026 by [Nicholas Wilde](https://github.com/nicholaswilde/).
