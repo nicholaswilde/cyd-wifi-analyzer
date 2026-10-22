@@ -128,6 +128,7 @@ task build
 # Or build for a specific board environment
 task build:cyd_28r      # 2.8" Resistive Touch (ILI9341)
 task build:cyd_28c      # 2.8" Capacitive Touch (JC2432W328C)
+task build:cyd_28_nm    # 2.8" Resistive Touch NodeMiner (ST7789)
 task build:cyd_35c      # 3.5" Capacitive Touch (ESP32-3248S035C)
 
 # Upload firmware to your connected CYD board
@@ -200,7 +201,7 @@ If the UI is scrambled or distorted, ensure the firmware environment matches you
 - **3.5" Capacitive (ST7796)**: `cyd_35c` / `cyd_35c_inv` (480x320 landscape)
 
 ### Partial Screen Rendering / 80px Noise Band
-If the display renders across 240 columns and the remaining 80 columns show uninitialized static noise, your board uses an **ST7789** controller. Use the `cyd_28_nm` or `cyd_28_nm_inv` environments in `platformio.ini`.
+If the display renders across 240 columns and the remaining 80 columns show uninitialized static noise, your board uses an **ST7789** controller. Use the `cyd_28_nm` or `cyd_28_nm_inv` environments in `platformio.ini`. See the detailed guide in [docs/hardware-variants.md](docs/hardware-variants.md) for background and configurations.
 
 ### Flashing & Bootloader Mode
 - If flashing manually via serial (`esptool.py`), the ESP32 might remain in bootloader mode after writing. Press the physical **RESET / EN** button (or power cycle) to boot into the application.

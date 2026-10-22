@@ -32,6 +32,16 @@ tasks:
     cmds:
       - pio run -e cyd_28c_inv
 
+  build:cyd_28_nm:
+    desc: Build firmware for 2.8" Resistive Touch CYD NodeMiner (ST7789 / XPT2046)
+    cmds:
+      - pio run -e cyd_28_nm
+
+  build:cyd_28_nm_inv:
+    desc: Build firmware for 2.8" Resistive Touch CYD NodeMiner Inverted (ST7789 / XPT2046)
+    cmds:
+      - pio run -e cyd_28_nm_inv
+
   build:cyd_35c:
     desc: Build firmware for 3.5" Capacitive Touch CYD (ESP32-3248S035C)
     cmds:
@@ -52,15 +62,40 @@ tasks:
     cmds:
       - pio run -e cyd_28r --target upload
 
+  upload:cyd_28r_inv:
+    desc: Upload firmware for cyd_28r_inv
+    cmds:
+      - pio run -e cyd_28r_inv --target upload
+
   upload:cyd_28c:
     desc: Upload firmware for cyd_28c
     cmds:
       - pio run -e cyd_28c --target upload
 
+  upload:cyd_28c_inv:
+    desc: Upload firmware for cyd_28c_inv
+    cmds:
+      - pio run -e cyd_28c_inv --target upload
+
+  upload:cyd_28_nm:
+    desc: Upload firmware for cyd_28_nm
+    cmds:
+      - pio run -e cyd_28_nm --target upload
+
+  upload:cyd_28_nm_inv:
+    desc: Upload firmware for cyd_28_nm_inv
+    cmds:
+      - pio run -e cyd_28_nm_inv --target upload
+
   upload:cyd_35c:
     desc: Upload firmware for cyd_35c
     cmds:
       - pio run -e cyd_35c --target upload
+
+  upload:cyd_35c_inv:
+    desc: Upload firmware for cyd_35c_inv
+    cmds:
+      - pio run -e cyd_35c_inv --target upload
 
   eau:
     desc: Erase flash and upload firmware
@@ -71,6 +106,11 @@ tasks:
     desc: Erase flash and upload for cyd_28r
     cmds:
       - pio run -e cyd_28r -t erase -t upload
+
+  eau:cyd_28_nm:
+    desc: Erase flash and upload for cyd_28_nm
+    cmds:
+      - pio run -e cyd_28_nm -t erase -t upload
 
   eau:cyd_35c:
     desc: Erase flash and upload for cyd_35c
@@ -86,6 +126,11 @@ tasks:
     desc: Upload and monitor for cyd_28r
     cmds:
       - pio run -e cyd_28r -t upload -t monitor
+
+  uam:cyd_28_nm:
+    desc: Upload and monitor for cyd_28_nm
+    cmds:
+      - pio run -e cyd_28_nm -t upload -t monitor
 
   uam:cyd_35c:
     desc: Upload and monitor for cyd_35c
@@ -111,6 +156,46 @@ tasks:
     desc: Run static code analysis
     cmds:
       - pio check -e {{.PIO_ENV}}
+
+  check:cyd_28r:
+    desc: Run static code analysis for cyd_28r
+    cmds:
+      - pio check -e cyd_28r
+
+  check:cyd_28r_inv:
+    desc: Run static code analysis for cyd_28r_inv
+    cmds:
+      - pio check -e cyd_28r_inv
+
+  check:cyd_28c:
+    desc: Run static code analysis for cyd_28c
+    cmds:
+      - pio check -e cyd_28c
+
+  check:cyd_28c_inv:
+    desc: Run static code analysis for cyd_28c_inv
+    cmds:
+      - pio check -e cyd_28c_inv
+
+  check:cyd_28_nm:
+    desc: Run static code analysis for cyd_28_nm
+    cmds:
+      - pio check -e cyd_28_nm
+
+  check:cyd_28_nm_inv:
+    desc: Run static code analysis for cyd_28_nm_inv
+    cmds:
+      - pio check -e cyd_28_nm_inv
+
+  check:cyd_35c:
+    desc: Run static code analysis for cyd_35c
+    cmds:
+      - pio check -e cyd_35c
+
+  check:cyd_35c_inv:
+    desc: Run static code analysis for cyd_35c_inv
+    cmds:
+      - pio check -e cyd_35c_inv
 
   clean:
     desc: Clean build outputs

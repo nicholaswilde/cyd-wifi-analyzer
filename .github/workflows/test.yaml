@@ -10,6 +10,9 @@ on:  # yamllint disable-line rule:truthy
       - '**.h'
       - '**.ini'
       - '.agents/design.md'
+      - 'scripts/**'
+      - 'Taskfile.yml'
+      - '.github/workflows/test.yaml'
   pull_request:
     branches:
       - main
@@ -18,7 +21,14 @@ on:  # yamllint disable-line rule:truthy
       - '**.h'
       - '**.ini'
       - '.agents/design.md'
+      - 'scripts/**'
+      - 'Taskfile.yml'
+      - '.github/workflows/test.yaml'
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   lint-design:
