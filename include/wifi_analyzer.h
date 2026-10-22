@@ -66,6 +66,24 @@ public:
     void recordRssiSample(const String& bssidStr, int8_t rssi);
     void clearHistory();
 
+    // Target AP Signal Tracking Mode
+    static const size_t MAX_TRACKER_HISTORY = 20;
+
+    void startTracking(const String& bssidStr, const String& ssid, uint8_t channel);
+    void stopTracking();
+    bool isTracking() const { return _isTracking; }
+
+    const String& getTargetBssid() const { return _targetBssid; }
+    const String& getTargetSsid() const { return _targetSsid; }
+    uint8_t getTargetChannel() const { return _targetChannel; }
+    int32_t getTargetRssi() const { return _targetRssi; }
+    const std::vector<int8_t>& getTargetRssiHistory() const { return _targetRssiHistory; }
+    int getTargetTrend() const;
+    const char* getTargetProximityStr() const;
+    void recordTargetSample(int8_t rssi);
+    bool isChirpEnabled() const { return _chirpEnabled; }
+    void setChirpEnabled(bool en) { _chirpEnabled = en; }
+
     // For testing and manual population
     void setScanResults(const std::vector<AccessPointInfo>& aps);
 
@@ -74,6 +92,14 @@ private:
     ChannelInfo _channels[CHANNEL_COUNT];
     std::vector<uint8_t> _bestChannels;
     std::map<String, std::vector<int8_t>> _bssidHistory;
+
+    bool _isTracking;
+    String _targetBssid;
+    String _targetSsid;
+    uint8_t _targetChannel;
+    int32_t _targetRssi;
+    std::vector<int8_t> _targetRssiHistory;
+    bool _chirpEnabled;
     
     bool _isScanning;
     uint32_t _scanStartTime;

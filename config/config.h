@@ -39,5 +39,6 @@
 // Hardware Pins
 #define LDR_PIN 34
 #define BOOT_BUTTON_PIN 0
+#define SPEAKER_PIN 26
 
 #endif // CONFIG_H

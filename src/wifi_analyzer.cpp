@@ -116,7 +116,8 @@ void analyzeChannels(const std::vector<AccessPointInfo>& aps, ChannelInfo channe
 }
 
 WifiAnalyzer::WifiAnalyzer()
-    : _isScanning(false), _scanStartTime(0), _lastScanDurationMs(0), _lastScanEndTime(0), _scanCount(0) {
+    : _isScanning(false), _scanStartTime(0), _lastScanDurationMs(0), _lastScanEndTime(0), _scanCount(0),
+      _isTracking(false), _targetBssid(""), _targetSsid(""), _targetChannel(1), _targetRssi(RSSI_FLOOR), _chirpEnabled(false) {
     for (uint8_t c = 0; c < CHANNEL_COUNT; c++) {
         _channels[c].channel = c + 1;
         _channels[c].apCount = 0;
@@ -141,9 +142,14 @@ bool WifiAnalyzer::triggerScan() {
 #ifndef NATIVE_TEST
     _isScanning = true;
     _scanStartTime = millis();
-    Serial.printf("[WiFi] Starting async scan (passive=%s, max_ms=%d)...\n", 
-                  settings.getPassiveScan() ? "true" : "false", MAX_MS_PER_CHAN);
-    int16_t status = WiFi.scanNetworks(true, SHOW_HIDDEN, settings.getPassiveScan(), MAX_MS_PER_CHAN);
+    int16_t status;
+    if (_isTracking) {
+        status = WiFi.scanNetworks(true, SHOW_HIDDEN, settings.getPassiveScan(), 120, _targetChannel);
+    } else {
+        Serial.printf("[WiFi] Starting async scan (passive=%s, max_ms=%d)...\n", 
+                      settings.getPassiveScan() ? "true" : "false", MAX_MS_PER_CHAN);
+        status = WiFi.scanNetworks(true, SHOW_HIDDEN, settings.getPassiveScan(), MAX_MS_PER_CHAN);
+    }
     if (status == WIFI_SCAN_FAILED) {
         Serial.println("[WiFi] scanNetworks call failed immediately");
         _isScanning = false;
@@ -158,7 +164,8 @@ bool WifiAnalyzer::triggerScan() {
 bool WifiAnalyzer::update() {
 #ifndef NATIVE_TEST
     if (!_isScanning) {
-        if (millis() - _lastScanEndTime >= settings.getScanIntervalMs()) {
+        uint32_t interval = _isTracking ? 50 : settings.getScanIntervalMs();
+        if (millis() - _lastScanEndTime >= interval) {
             triggerScan();
         }
         return false;
@@ -178,6 +185,24 @@ bool WifiAnalyzer::update() {
         Serial.printf("[WiFi] Scan finished with error code: %d (duration: %lu ms)\n", n, _lastScanDurationMs);
         WiFi.scanDelete();
         return false;
+    }
+
+    if (_isTracking) {
+        bool found = false;
+        for (int16_t i = 0; i < n; i++) {
+            String bssidStr = WiFi.BSSIDstr(i);
+            if (bssidStr.equalsIgnoreCase(_targetBssid)) {
+                int32_t currentRssi = WiFi.RSSI(i);
+                recordTargetSample((int8_t)currentRssi);
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            recordTargetSample((int8_t)RSSI_FLOOR);
+        }
+        WiFi.scanDelete();
+        return true;
     }
 
     Serial.printf("[WiFi] Scan completed: %d APs found in %lu ms\n", n, _lastScanDurationMs);
@@ -255,4 +280,54 @@ void WifiAnalyzer::processScanResults() {
 void WifiAnalyzer::setScanResults(const std::vector<AccessPointInfo>& aps) {
     _accessPoints = aps;
     processScanResults();
+}
+
+void WifiAnalyzer::startTracking(const String& bssidStr, const String& ssid, uint8_t channel) {
+    _isTracking = true;
+    _targetBssid = bssidStr;
+    _targetSsid = ssid;
+    _targetChannel = channel;
+    _targetRssi = RSSI_FLOOR;
+    _targetRssiHistory.clear();
+#ifndef NATIVE_TEST
+    WiFi.scanDelete();
+#endif
+    _isScanning = false;
+    _lastScanEndTime = 0;
+    triggerScan();
+}
+
+void WifiAnalyzer::stopTracking() {
+    _isTracking = false;
+#ifndef NATIVE_TEST
+    WiFi.scanDelete();
+#endif
+    _isScanning = false;
+    _lastScanEndTime = millis();
+}
+
+void WifiAnalyzer::recordTargetSample(int8_t rssi) {
+    _targetRssi = rssi;
+    _targetRssiHistory.push_back(rssi);
+    if (_targetRssiHistory.size() > MAX_TRACKER_HISTORY) {
+        _targetRssiHistory.erase(_targetRssiHistory.begin());
+    }
+}
+
+int WifiAnalyzer::getTargetTrend() const {
+    if (_targetRssiHistory.size() < 4) return 0;
+    size_t sz = _targetRssiHistory.size();
+    int sum_recent = _targetRssiHistory[sz - 1] + _targetRssiHistory[sz - 2];
+    int sum_older = _targetRssiHistory[sz - 3] + _targetRssiHistory[sz - 4];
+    if (sum_recent > sum_older + 2) return 1;
+    if (sum_recent < sum_older - 2) return -1;
+    return 0;
+}
+
+const char* WifiAnalyzer::getTargetProximityStr() const {
+    if (_targetRssi >= -50) return "Very Close / Immediate";
+    if (_targetRssi >= -65) return "Close Range (Strong)";
+    if (_targetRssi >= -75) return "Moderate Distance";
+    if (_targetRssi >= -85) return "Weak / Distant";
+    return "Faint / Out of Range";
 }

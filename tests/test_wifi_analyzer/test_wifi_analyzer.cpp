@@ -205,6 +205,82 @@ void test_rssi_history_tracking(void) {
     TEST_ASSERT_EQUAL_UINT32(0, wa.getRssiHistory(bssid).size());
 }
 
+void test_tracker_start_stop(void) {
+    WifiAnalyzer wa;
+    TEST_ASSERT_FALSE(wa.isTracking());
+
+    wa.startTracking("11:22:33:44:55:66", "TargetNet", 6);
+    TEST_ASSERT_TRUE(wa.isTracking());
+    TEST_ASSERT_EQUAL_STRING("11:22:33:44:55:66", wa.getTargetBssid().c_str());
+    TEST_ASSERT_EQUAL_STRING("TargetNet", wa.getTargetSsid().c_str());
+    TEST_ASSERT_EQUAL_UINT8(6, wa.getTargetChannel());
+    TEST_ASSERT_EQUAL_INT32(RSSI_FLOOR, wa.getTargetRssi());
+    TEST_ASSERT_EQUAL_UINT32(0, wa.getTargetRssiHistory().size());
+
+    wa.stopTracking();
+    TEST_ASSERT_FALSE(wa.isTracking());
+}
+
+void test_tracker_sampling_and_history(void) {
+    WifiAnalyzer wa;
+    wa.startTracking("AA:BB:CC:DD:EE:FF", "MyAP", 11);
+
+    wa.recordTargetSample(-72);
+    TEST_ASSERT_EQUAL_INT32(-72, wa.getTargetRssi());
+    TEST_ASSERT_EQUAL_UINT32(1, wa.getTargetRssiHistory().size());
+
+    // Fill beyond MAX_TRACKER_HISTORY (20)
+    for (int i = 0; i < 25; i++) {
+        wa.recordTargetSample(-60 + (i % 5));
+    }
+    TEST_ASSERT_EQUAL_UINT32(WifiAnalyzer::MAX_TRACKER_HISTORY, wa.getTargetRssiHistory().size());
+}
+
+void test_tracker_trend_calculation(void) {
+    WifiAnalyzer wa;
+    wa.startTracking("AA:BB:CC:DD:EE:FF", "MyAP", 1);
+
+    // Fewer than 4 samples -> 0 (stable)
+    wa.recordTargetSample(-80);
+    wa.recordTargetSample(-80);
+    TEST_ASSERT_EQUAL(0, wa.getTargetTrend());
+
+    // Add 2 more: stable (-80, -80, -80, -80)
+    wa.recordTargetSample(-80);
+    wa.recordTargetSample(-80);
+    TEST_ASSERT_EQUAL(0, wa.getTargetTrend());
+
+    // Rising / Warmer: recent average is higher than older average
+    wa.recordTargetSample(-65);
+    wa.recordTargetSample(-60);
+    TEST_ASSERT_EQUAL(1, wa.getTargetTrend());
+
+    // Falling / Colder: recent average drops
+    wa.recordTargetSample(-90);
+    wa.recordTargetSample(-95);
+    TEST_ASSERT_EQUAL(-1, wa.getTargetTrend());
+}
+
+void test_tracker_proximity_strings(void) {
+    WifiAnalyzer wa;
+    wa.startTracking("AA:BB:CC:DD:EE:FF", "MyAP", 1);
+
+    wa.recordTargetSample(-45);
+    TEST_ASSERT_EQUAL_STRING("Very Close / Immediate", wa.getTargetProximityStr());
+
+    wa.recordTargetSample(-60);
+    TEST_ASSERT_EQUAL_STRING("Close Range (Strong)", wa.getTargetProximityStr());
+
+    wa.recordTargetSample(-72);
+    TEST_ASSERT_EQUAL_STRING("Moderate Distance", wa.getTargetProximityStr());
+
+    wa.recordTargetSample(-82);
+    TEST_ASSERT_EQUAL_STRING("Weak / Distant", wa.getTargetProximityStr());
+
+    wa.recordTargetSample(-95);
+    TEST_ASSERT_EQUAL_STRING("Faint / Out of Range", wa.getTargetProximityStr());
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_match_bssid_prefix);
@@ -217,5 +293,9 @@ int main(void) {
     RUN_TEST(test_calculate_parabola_y);
     RUN_TEST(test_channel_to_frequency);
     RUN_TEST(test_rssi_history_tracking);
+    RUN_TEST(test_tracker_start_stop);
+    RUN_TEST(test_tracker_sampling_and_history);
+    RUN_TEST(test_tracker_trend_calculation);
+    RUN_TEST(test_tracker_proximity_strings);
     return UNITY_END();
 }

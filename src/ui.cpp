@@ -26,10 +26,27 @@ static lv_obj_t* s_list_networks = nullptr;
 // Detail Modal Widgets
 static lv_obj_t* s_detail_modal = nullptr;
 static String s_modal_bssid = "";
+static String s_modal_ssid = "";
+static uint8_t s_modal_channel = 1;
 static lv_obj_t* s_modal_lbl_signal = nullptr;
 static lv_obj_t* s_modal_bar_signal = nullptr;
 static lv_obj_t* s_modal_chart_history = nullptr;
 static lv_chart_series_t* s_modal_ser_history = nullptr;
+
+// Tracker View Widgets
+static lv_obj_t* s_tracker_view = nullptr;
+static lv_obj_t* s_tracker_lbl_ssid = nullptr;
+static lv_obj_t* s_tracker_lbl_bssid_ch = nullptr;
+static lv_obj_t* s_tracker_meter_arc = nullptr;
+static lv_obj_t* s_tracker_lbl_rssi = nullptr;
+static lv_obj_t* s_tracker_lbl_proximity = nullptr;
+static lv_obj_t* s_tracker_lbl_trend = nullptr;
+static lv_obj_t* s_tracker_chart = nullptr;
+static lv_chart_series_t* s_tracker_ser = nullptr;
+static lv_obj_t* s_tracker_btn_audio = nullptr;
+static lv_obj_t* s_tracker_lbl_audio = nullptr;
+static lv_obj_t* s_tracker_btn_exit = nullptr;
+static lv_obj_t* s_tracker_lbl_stats = nullptr;
 
 // Channels Tab Widgets
 static lv_obj_t* s_table_channels = nullptr;
@@ -161,16 +178,191 @@ static void on_reset_settings_clicked(lv_event_t* e) {
     refreshThemeUI();
 }
 
+static void playTrackerChirp(int32_t rssi) {
+    if (!wifiAnalyzer.isChirpEnabled() || rssi < -95) return;
+    int freq = (int)(400 + (rssi + 95) * 35);
+    if (freq < 300) freq = 300;
+    if (freq > 3000) freq = 3000;
+#ifndef NATIVE_TEST
+    tone(SPEAKER_PIN, freq, 25);
+#endif
+}
+
+static void on_tracker_exit_clicked(lv_event_t* e) {
+    closeTrackerView();
+}
+
+static void on_tracker_audio_toggle_clicked(lv_event_t* e) {
+    bool en = !wifiAnalyzer.isChirpEnabled();
+    wifiAnalyzer.setChirpEnabled(en);
+    if (s_tracker_lbl_audio) {
+        lv_label_set_text(s_tracker_lbl_audio, en ? LV_SYMBOL_VOLUME_MAX " Beep: ON" : LV_SYMBOL_MUTE " Beep: OFF");
+        const auto& p = getCatppuccinFlavor(getCurrentThemeFlavor());
+        lv_obj_set_style_text_color(s_tracker_lbl_audio, en ? TO_LV_COLOR(p.green) : TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
+    }
+}
+
+void closeTrackerView() {
+    wifiAnalyzer.stopTracking();
+    if (s_tracker_view) {
+        lv_obj_del(s_tracker_view);
+        s_tracker_view = nullptr;
+        s_tracker_lbl_ssid = nullptr;
+        s_tracker_lbl_bssid_ch = nullptr;
+        s_tracker_meter_arc = nullptr;
+        s_tracker_lbl_rssi = nullptr;
+        s_tracker_lbl_proximity = nullptr;
+        s_tracker_lbl_trend = nullptr;
+        s_tracker_chart = nullptr;
+        s_tracker_ser = nullptr;
+        s_tracker_btn_audio = nullptr;
+        s_tracker_lbl_audio = nullptr;
+        s_tracker_btn_exit = nullptr;
+        s_tracker_lbl_stats = nullptr;
+    }
+    updateUI();
+}
+
+void openTrackerView(const String& bssidStr, const String& ssid, uint8_t channel) {
+    if (s_tracker_view) {
+        closeTrackerView();
+    }
+
+    wifiAnalyzer.startTracking(bssidStr, ssid, channel);
+    const auto& p = getCatppuccinFlavor(getCurrentThemeFlavor());
+
+    s_tracker_view = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(s_tracker_view, LV_PCT(100), LV_PCT(100));
+    lv_obj_center(s_tracker_view);
+    lv_obj_clear_flag(s_tracker_view, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_bg_color(s_tracker_view, TO_LV_COLOR(p.base), LV_PART_MAIN);
+    lv_obj_set_style_pad_all(s_tracker_view, 6, LV_PART_MAIN);
+    lv_obj_set_style_border_width(s_tracker_view, 0, LV_PART_MAIN);
+
+    // 1. Header: Target SSID & Details + Exit Button
+    s_tracker_lbl_ssid = lv_label_create(s_tracker_view);
+    lv_label_set_text(s_tracker_lbl_ssid, ssid.c_str());
+    lv_obj_set_style_text_color(s_tracker_lbl_ssid, TO_LV_COLOR(p.mauve), LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_tracker_lbl_ssid, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_size(s_tracker_lbl_ssid, 220, 18);
+    lv_label_set_long_mode(s_tracker_lbl_ssid, LV_LABEL_LONG_DOT);
+    lv_obj_align(s_tracker_lbl_ssid, LV_ALIGN_TOP_LEFT, 4, 2);
+
+    char chBuf[64];
+    snprintf(chBuf, sizeof(chBuf), "BSSID: %s | CH %d (%d MHz)", bssidStr.c_str(), (int)channel, (int)channelToFrequency(channel));
+    s_tracker_lbl_bssid_ch = lv_label_create(s_tracker_view);
+    lv_label_set_text(s_tracker_lbl_bssid_ch, chBuf);
+    lv_obj_set_style_text_color(s_tracker_lbl_bssid_ch, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_tracker_lbl_bssid_ch, &lv_font_montserrat_10, LV_PART_MAIN);
+    lv_obj_align(s_tracker_lbl_bssid_ch, LV_ALIGN_TOP_LEFT, 4, 22);
+
+    s_tracker_btn_exit = lv_btn_create(s_tracker_view);
+    lv_obj_set_size(s_tracker_btn_exit, 65, 26);
+    lv_obj_align(s_tracker_btn_exit, LV_ALIGN_TOP_RIGHT, 0, 2);
+    lv_obj_set_style_bg_color(s_tracker_btn_exit, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+    lv_obj_set_style_radius(s_tracker_btn_exit, 4, LV_PART_MAIN);
+    lv_obj_add_event_cb(s_tracker_btn_exit, on_tracker_exit_clicked, LV_EVENT_CLICKED, nullptr);
+
+    lv_obj_t* lbl_exit = lv_label_create(s_tracker_btn_exit);
+    lv_label_set_text(lbl_exit, LV_SYMBOL_CLOSE " Exit");
+    lv_obj_set_style_text_color(lbl_exit, TO_LV_COLOR(p.red), LV_PART_MAIN);
+    lv_obj_set_style_text_font(lbl_exit, &lv_font_montserrat_10, LV_PART_MAIN);
+    lv_obj_center(lbl_exit);
+
+    // 2. Left Column: Circular Arc Meter
+    s_tracker_meter_arc = lv_arc_create(s_tracker_view);
+    lv_obj_set_size(s_tracker_meter_arc, 130, 130);
+    lv_obj_align(s_tracker_meter_arc, LV_ALIGN_TOP_LEFT, 6, 42);
+    lv_arc_set_rotation(s_tracker_meter_arc, 135);
+    lv_arc_set_bg_angles(s_tracker_meter_arc, 0, 270);
+    lv_arc_set_range(s_tracker_meter_arc, 0, 100);
+    lv_arc_set_value(s_tracker_meter_arc, 0);
+    lv_obj_clear_flag(s_tracker_meter_arc, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_style(s_tracker_meter_arc, NULL, LV_PART_KNOB);
+    lv_obj_set_style_arc_width(s_tracker_meter_arc, 9, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(s_tracker_meter_arc, 9, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(s_tracker_meter_arc, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+    lv_obj_set_style_arc_color(s_tracker_meter_arc, TO_LV_COLOR(p.green), LV_PART_INDICATOR);
+
+    s_tracker_lbl_rssi = lv_label_create(s_tracker_view);
+    lv_label_set_text(s_tracker_lbl_rssi, "-- dBm");
+    lv_obj_set_style_text_color(s_tracker_lbl_rssi, TO_LV_COLOR(p.text), LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_tracker_lbl_rssi, &lv_font_montserrat_20, LV_PART_MAIN);
+    lv_obj_align_to(s_tracker_lbl_rssi, s_tracker_meter_arc, LV_ALIGN_CENTER, 0, -8);
+
+    s_tracker_lbl_proximity = lv_label_create(s_tracker_view);
+    lv_label_set_text(s_tracker_lbl_proximity, "Searching...");
+    lv_obj_set_style_text_color(s_tracker_lbl_proximity, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_tracker_lbl_proximity, &lv_font_montserrat_10, LV_PART_MAIN);
+    lv_obj_align_to(s_tracker_lbl_proximity, s_tracker_meter_arc, LV_ALIGN_CENTER, 0, 16);
+
+    // 3. Right Column: Trend & Rolling Real-time Chart
+    s_tracker_lbl_trend = lv_label_create(s_tracker_view);
+    lv_label_set_text(s_tracker_lbl_trend, LV_SYMBOL_MINUS " SEARCHING");
+    lv_obj_set_style_text_color(s_tracker_lbl_trend, TO_LV_COLOR(p.yellow), LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_tracker_lbl_trend, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_align(s_tracker_lbl_trend, LV_ALIGN_TOP_LEFT, 150, 42);
+
+    s_tracker_chart = lv_chart_create(s_tracker_view);
+    lv_obj_set_size(s_tracker_chart, 154, 105);
+    lv_obj_align(s_tracker_chart, LV_ALIGN_TOP_LEFT, 150, 66);
+    lv_chart_set_type(s_tracker_chart, LV_CHART_TYPE_LINE);
+    lv_chart_set_range(s_tracker_chart, LV_CHART_AXIS_PRIMARY_Y, -100, -30);
+    lv_chart_set_point_count(s_tracker_chart, WifiAnalyzer::MAX_TRACKER_HISTORY);
+    lv_chart_set_div_line_count(s_tracker_chart, 3, 0);
+
+    lv_obj_set_style_bg_color(s_tracker_chart, TO_LV_COLOR(p.mantle), LV_PART_MAIN);
+    lv_obj_set_style_border_color(s_tracker_chart, TO_LV_COLOR(p.surface1), LV_PART_MAIN);
+    lv_obj_set_style_border_width(s_tracker_chart, 1, LV_PART_MAIN);
+    lv_obj_set_style_radius(s_tracker_chart, 4, LV_PART_MAIN);
+
+    s_tracker_ser = lv_chart_add_series(s_tracker_chart, TO_LV_COLOR(p.mauve), LV_CHART_AXIS_PRIMARY_Y);
+    for (size_t i = 0; i < WifiAnalyzer::MAX_TRACKER_HISTORY; i++) {
+        lv_chart_set_next_value(s_tracker_chart, s_tracker_ser, -100);
+    }
+    lv_chart_refresh(s_tracker_chart);
+
+    // 4. Bottom Controls: Audio Beep Toggle & Stats
+    s_tracker_btn_audio = lv_btn_create(s_tracker_view);
+    lv_obj_set_size(s_tracker_btn_audio, 110, 28);
+    lv_obj_align(s_tracker_btn_audio, LV_ALIGN_BOTTOM_LEFT, 4, -4);
+    lv_obj_set_style_bg_color(s_tracker_btn_audio, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+    lv_obj_set_style_radius(s_tracker_btn_audio, 4, LV_PART_MAIN);
+    lv_obj_add_event_cb(s_tracker_btn_audio, on_tracker_audio_toggle_clicked, LV_EVENT_CLICKED, nullptr);
+
+    s_tracker_lbl_audio = lv_label_create(s_tracker_btn_audio);
+    lv_label_set_text(s_tracker_lbl_audio, wifiAnalyzer.isChirpEnabled() ? LV_SYMBOL_VOLUME_MAX " Beep: ON" : LV_SYMBOL_MUTE " Beep: OFF");
+    lv_obj_set_style_text_color(s_tracker_lbl_audio, wifiAnalyzer.isChirpEnabled() ? TO_LV_COLOR(p.green) : TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_tracker_lbl_audio, &lv_font_montserrat_10, LV_PART_MAIN);
+    lv_obj_center(s_tracker_lbl_audio);
+
+    s_tracker_lbl_stats = lv_label_create(s_tracker_view);
+    lv_label_set_text(s_tracker_lbl_stats, "Rapid Scan: Active (~6 Hz)");
+    lv_obj_set_style_text_color(s_tracker_lbl_stats, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
+    lv_obj_set_style_text_font(s_tracker_lbl_stats, &lv_font_montserrat_10, LV_PART_MAIN);
+    lv_obj_align(s_tracker_lbl_stats, LV_ALIGN_BOTTOM_LEFT, 122, -10);
+}
+
 static void on_close_modal_clicked(lv_event_t* e) {
     if (s_detail_modal) {
         lv_obj_del(s_detail_modal);
         s_detail_modal = nullptr;
         s_modal_bssid = "";
+        s_modal_ssid = "";
+        s_modal_channel = 1;
         s_modal_lbl_signal = nullptr;
         s_modal_bar_signal = nullptr;
         s_modal_chart_history = nullptr;
         s_modal_ser_history = nullptr;
     }
+}
+
+static void on_track_ap_clicked(lv_event_t* e) {
+    String bssid = s_modal_bssid;
+    String ssid = s_modal_ssid;
+    uint8_t channel = s_modal_channel;
+    on_close_modal_clicked(nullptr);
+    openTrackerView(bssid, ssid, channel);
 }
 
 static void showNetworkDetailModal(const AccessPointInfo& ap) {
@@ -181,10 +373,12 @@ static void showNetworkDetailModal(const AccessPointInfo& ap) {
 
     const auto& p = getCatppuccinFlavor(getCurrentThemeFlavor());
     s_modal_bssid = ap.bssidStr;
+    s_modal_ssid = ap.ssid;
+    s_modal_channel = ap.channel;
 
     // Create Modal Frame
     s_detail_modal = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(s_detail_modal, 296, 210);
+    lv_obj_set_size(s_detail_modal, 296, 216);
     lv_obj_center(s_detail_modal);
     lv_obj_clear_flag(s_detail_modal, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -229,7 +423,7 @@ static void showNetworkDetailModal(const AccessPointInfo& ap) {
     lv_label_set_text(lbl_row1, infoRow1);
     lv_obj_set_style_text_color(lbl_row1, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
     lv_obj_set_style_text_font(lbl_row1, &lv_font_montserrat_10, LV_PART_MAIN);
-    lv_obj_align(lbl_row1, LV_ALIGN_TOP_LEFT, 2, 26);
+    lv_obj_align(lbl_row1, LV_ALIGN_TOP_LEFT, 2, 24);
 
     // 3. Info Row 2: Security Type
     char infoRow2[64];
@@ -238,7 +432,7 @@ static void showNetworkDetailModal(const AccessPointInfo& ap) {
     lv_label_set_text(lbl_row2, infoRow2);
     lv_obj_set_style_text_color(lbl_row2, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
     lv_obj_set_style_text_font(lbl_row2, &lv_font_montserrat_10, LV_PART_MAIN);
-    lv_obj_align(lbl_row2, LV_ALIGN_TOP_LEFT, 2, 42);
+    lv_obj_align(lbl_row2, LV_ALIGN_TOP_LEFT, 2, 38);
 
     // 4. Signal Strength & Quality Bar
     char signalBuf[48];
@@ -249,11 +443,11 @@ static void showNetworkDetailModal(const AccessPointInfo& ap) {
     lv_label_set_text(s_modal_lbl_signal, signalBuf);
     lv_obj_set_style_text_color(s_modal_lbl_signal, TO_LV_COLOR(p.text), LV_PART_MAIN);
     lv_obj_set_style_text_font(s_modal_lbl_signal, &lv_font_montserrat_10, LV_PART_MAIN);
-    lv_obj_align(s_modal_lbl_signal, LV_ALIGN_TOP_LEFT, 2, 58);
+    lv_obj_align(s_modal_lbl_signal, LV_ALIGN_TOP_LEFT, 2, 52);
 
     s_modal_bar_signal = lv_bar_create(s_detail_modal);
     lv_obj_set_size(s_modal_bar_signal, 276, 8);
-    lv_obj_align(s_modal_bar_signal, LV_ALIGN_TOP_LEFT, 2, 74);
+    lv_obj_align(s_modal_bar_signal, LV_ALIGN_TOP_LEFT, 2, 66);
     lv_bar_set_range(s_modal_bar_signal, 0, 100);
     lv_bar_set_value(s_modal_bar_signal, quality, LV_ANIM_OFF);
     lv_obj_set_style_bg_color(s_modal_bar_signal, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
@@ -266,11 +460,11 @@ static void showNetworkDetailModal(const AccessPointInfo& ap) {
     lv_label_set_text(lbl_hist, "Signal Stability (Last 30 Scans):");
     lv_obj_set_style_text_color(lbl_hist, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
     lv_obj_set_style_text_font(lbl_hist, &lv_font_montserrat_10, LV_PART_MAIN);
-    lv_obj_align(lbl_hist, LV_ALIGN_TOP_LEFT, 2, 88);
+    lv_obj_align(lbl_hist, LV_ALIGN_TOP_LEFT, 2, 78);
 
     s_modal_chart_history = lv_chart_create(s_detail_modal);
-    lv_obj_set_size(s_modal_chart_history, 276, 80);
-    lv_obj_align(s_modal_chart_history, LV_ALIGN_BOTTOM_MID, 0, -2);
+    lv_obj_set_size(s_modal_chart_history, 276, 56);
+    lv_obj_align(s_modal_chart_history, LV_ALIGN_TOP_LEFT, 2, 94);
     lv_chart_set_type(s_modal_chart_history, LV_CHART_TYPE_LINE);
     lv_chart_set_range(s_modal_chart_history, LV_CHART_AXIS_PRIMARY_Y, -100, -30);
     lv_chart_set_point_count(s_modal_chart_history, WifiAnalyzer::MAX_HISTORY_SAMPLES);
@@ -292,6 +486,33 @@ static void showNetworkDetailModal(const AccessPointInfo& ap) {
         }
     }
     lv_chart_refresh(s_modal_chart_history);
+
+    // 6. Action Buttons: Track Signal & Close
+    lv_obj_t* btn_track = lv_btn_create(s_detail_modal);
+    lv_obj_set_size(btn_track, 134, 28);
+    lv_obj_align(btn_track, LV_ALIGN_BOTTOM_LEFT, 2, -2);
+    lv_obj_set_style_bg_color(btn_track, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+    lv_obj_set_style_radius(btn_track, 4, LV_PART_MAIN);
+    lv_obj_add_event_cb(btn_track, on_track_ap_clicked, LV_EVENT_CLICKED, nullptr);
+
+    lv_obj_t* lbl_track = lv_label_create(btn_track);
+    lv_label_set_text(lbl_track, LV_SYMBOL_EYE_OPEN " Track Signal");
+    lv_obj_set_style_text_color(lbl_track, TO_LV_COLOR(p.mauve), LV_PART_MAIN);
+    lv_obj_set_style_text_font(lbl_track, &lv_font_montserrat_10, LV_PART_MAIN);
+    lv_obj_center(lbl_track);
+
+    lv_obj_t* btn_bottom_close = lv_btn_create(s_detail_modal);
+    lv_obj_set_size(btn_bottom_close, 134, 28);
+    lv_obj_align(btn_bottom_close, LV_ALIGN_BOTTOM_RIGHT, -2, -2);
+    lv_obj_set_style_bg_color(btn_bottom_close, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+    lv_obj_set_style_radius(btn_bottom_close, 4, LV_PART_MAIN);
+    lv_obj_add_event_cb(btn_bottom_close, on_close_modal_clicked, LV_EVENT_CLICKED, nullptr);
+
+    lv_obj_t* lbl_bottom_close = lv_label_create(btn_bottom_close);
+    lv_label_set_text(lbl_bottom_close, LV_SYMBOL_CLOSE " Close");
+    lv_obj_set_style_text_color(lbl_bottom_close, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
+    lv_obj_set_style_text_font(lbl_bottom_close, &lv_font_montserrat_10, LV_PART_MAIN);
+    lv_obj_center(lbl_bottom_close);
 }
 
 static void on_network_clicked(lv_event_t* e) {
@@ -651,6 +872,74 @@ void initUI() {
 }
 
 void updateUI() {
+    if (wifiAnalyzer.isTracking()) {
+        if (!s_tracker_view) return;
+        const auto& p = getCatppuccinFlavor(getCurrentThemeFlavor());
+        int32_t rssi = wifiAnalyzer.getTargetRssi();
+        uint8_t q = rssiToQuality(rssi);
+
+        if (s_tracker_meter_arc) {
+            lv_arc_set_value(s_tracker_meter_arc, q);
+            lv_color_t arc_color;
+            if (q >= 70) arc_color = TO_LV_COLOR(p.green);
+            else if (q >= 45) arc_color = TO_LV_COLOR(p.sapphire);
+            else if (q >= 20) arc_color = TO_LV_COLOR(p.yellow);
+            else arc_color = TO_LV_COLOR(p.red);
+            lv_obj_set_style_arc_color(s_tracker_meter_arc, arc_color, LV_PART_INDICATOR);
+        }
+
+        if (s_tracker_lbl_rssi) {
+            char rBuf[32];
+            if (rssi <= RSSI_FLOOR) {
+                snprintf(rBuf, sizeof(rBuf), "-- dBm");
+            } else {
+                snprintf(rBuf, sizeof(rBuf), "%d dBm", (int)rssi);
+            }
+            lv_label_set_text(s_tracker_lbl_rssi, rBuf);
+            lv_obj_align_to(s_tracker_lbl_rssi, s_tracker_meter_arc, LV_ALIGN_CENTER, 0, -8);
+        }
+
+        if (s_tracker_lbl_proximity) {
+            lv_label_set_text(s_tracker_lbl_proximity, wifiAnalyzer.getTargetProximityStr());
+            lv_obj_align_to(s_tracker_lbl_proximity, s_tracker_meter_arc, LV_ALIGN_CENTER, 0, 16);
+        }
+
+        if (s_tracker_lbl_trend) {
+            int trend = wifiAnalyzer.getTargetTrend();
+            if (trend > 0) {
+                lv_label_set_text(s_tracker_lbl_trend, LV_SYMBOL_UP " WARMER");
+                lv_obj_set_style_text_color(s_tracker_lbl_trend, TO_LV_COLOR(p.green), LV_PART_MAIN);
+            } else if (trend < 0) {
+                lv_label_set_text(s_tracker_lbl_trend, LV_SYMBOL_DOWN " COLDER");
+                lv_obj_set_style_text_color(s_tracker_lbl_trend, TO_LV_COLOR(p.red), LV_PART_MAIN);
+            } else {
+                lv_label_set_text(s_tracker_lbl_trend, LV_SYMBOL_MINUS " STABLE");
+                lv_obj_set_style_text_color(s_tracker_lbl_trend, TO_LV_COLOR(p.yellow), LV_PART_MAIN);
+            }
+        }
+
+        if (s_tracker_chart && s_tracker_ser) {
+            const auto& hist = wifiAnalyzer.getTargetRssiHistory();
+            for (size_t h = 0; h < WifiAnalyzer::MAX_TRACKER_HISTORY; h++) {
+                if (h < hist.size()) {
+                    s_tracker_ser->y_points[h] = (lv_coord_t)hist[h];
+                } else {
+                    s_tracker_ser->y_points[h] = -100;
+                }
+            }
+            lv_chart_refresh(s_tracker_chart);
+        }
+
+        if (s_tracker_lbl_stats) {
+            char statBuf[48];
+            snprintf(statBuf, sizeof(statBuf), "Scans: %u | Qual: %d%%", (unsigned)wifiAnalyzer.getScanCount(), q);
+            lv_label_set_text(s_tracker_lbl_stats, statBuf);
+        }
+
+        playTrackerChirp(rssi);
+        return;
+    }
+
     const auto& aps = wifiAnalyzer.getAccessPoints();
     const ChannelInfo* channels = wifiAnalyzer.getChannels();
     const auto& bestChannels = wifiAnalyzer.getBestChannels();
@@ -765,6 +1054,17 @@ void refreshThemeUI() {
     if (s_detail_modal) {
         lv_obj_set_style_bg_color(s_detail_modal, TO_LV_COLOR(p.mantle), LV_PART_MAIN);
         lv_obj_set_style_border_color(s_detail_modal, TO_LV_COLOR(p.surface1), LV_PART_MAIN);
+    }
+
+    if (s_tracker_view) {
+        lv_obj_set_style_bg_color(s_tracker_view, TO_LV_COLOR(p.base), LV_PART_MAIN);
+        if (s_tracker_chart) {
+            lv_obj_set_style_bg_color(s_tracker_chart, TO_LV_COLOR(p.mantle), LV_PART_MAIN);
+            lv_obj_set_style_border_color(s_tracker_chart, TO_LV_COLOR(p.surface1), LV_PART_MAIN);
+        }
+        if (s_tracker_meter_arc) {
+            lv_obj_set_style_arc_color(s_tracker_meter_arc, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+        }
     }
 
     if (s_lbl_theme) lv_obj_set_style_text_color(s_lbl_theme, TO_LV_COLOR(p.text), LV_PART_MAIN);
