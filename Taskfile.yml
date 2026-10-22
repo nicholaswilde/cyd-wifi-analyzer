@@ -7,6 +7,44 @@ vars:
   PIO_ENV: '{{.PIO_ENV | default "cyd_28r"}}'
 
 tasks:
+  init:
+    desc: Initialize project environment file
+    status:
+      - test -f .env
+    preconditions:
+      - test -f .env.example
+    cmds:
+      - cp .env.example .env
+
+  coverage:report:
+    desc: Show coverage report
+    cmds:
+      - task: test
+        ignore_error: true
+      - lcov --capture --base-directory . --directory .pio/build/native/ --output-file lcov_raw.info --rc branch_coverage=1 --ignore-errors "gcov,source"
+      - lcov --remove lcov_raw.info '*/.pio/*' '*/tests/*' '*/tests/mocks/*' '/usr/*' -o lcov.info --rc branch_coverage=1 --ignore-errors "unused,source"
+      - lcov --list lcov.info
+      - defer: rm -f lcov_raw.info lcov.info
+
+  coverage:upload:
+    desc: Generate and upload coverage report to Coveralls.io
+    dotenv: ['.env']
+    preconditions:
+      - sh: 'test -n "$COVERALLS_REPO_TOKEN"'
+        msg: "COVERALLS_REPO_TOKEN is not set. Please add it to your .env file."
+    cmds:
+      # 1. Run native tests to output coverage data
+      - task: test
+        ignore_error: true
+      # 2. Extract and capture raw code coverage reports
+      - lcov --capture --base-directory . --directory .pio/build/native/ --output-file lcov_raw.info --rc branch_coverage=1 --ignore-errors "gcov,source"
+      # 3. Clean up the report by filtering out system and test files
+      - lcov --remove lcov_raw.info '*/.pio/*' '*/tests/*' '*/tests/mocks/*' '/usr/*' -o lcov.info --rc branch_coverage=1 --ignore-errors "unused,source"
+      # 4. Upload to coveralls using the CLI binary
+      - coveralls report lcov.info -n -r $COVERALLS_REPO_TOKEN
+      # 5. Clean up temporary local files
+      - defer: rm -f lcov_raw.info lcov.info
+
   build:
     desc: Build firmware for default environment ({{.PIO_ENV}})
     cmds:
