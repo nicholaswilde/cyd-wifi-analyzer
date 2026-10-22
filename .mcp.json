@@ -9,6 +9,13 @@
         "start-mcp-server",
         "--context=antigravity"
       ]
+    },
+    "codegraph": {
+      "command": "codegraph",
+      "args": [
+        "serve",
+        "--mcp"
+      ]
     }
   }
 }
