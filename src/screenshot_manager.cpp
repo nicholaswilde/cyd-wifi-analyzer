@@ -73,6 +73,26 @@ void ScreenshotManager::handleCommand(const String& cmd) {
 #ifndef NATIVE_TEST
         Serial.printf("[Screenshot] Switched to tab %d\n", tabIdx);
 #endif
+    } else if (trimmed.equalsIgnoreCase("modal") || trimmed.equalsIgnoreCase("modal open")) {
+        openDetailModal();
+#ifndef NATIVE_TEST
+        Serial.println("[Screenshot] Opened detail modal");
+#endif
+    } else if (trimmed.equalsIgnoreCase("modal close")) {
+        closeDetailModal();
+#ifndef NATIVE_TEST
+        Serial.println("[Screenshot] Closed detail modal");
+#endif
+    } else if (trimmed.equalsIgnoreCase("tracker") || trimmed.equalsIgnoreCase("tracker open")) {
+        openTrackerDemo();
+#ifndef NATIVE_TEST
+        Serial.println("[Screenshot] Opened tracker view");
+#endif
+    } else if (trimmed.equalsIgnoreCase("tracker close")) {
+        closeTrackerView();
+#ifndef NATIVE_TEST
+        Serial.println("[Screenshot] Closed tracker view");
+#endif
     }
 }
 

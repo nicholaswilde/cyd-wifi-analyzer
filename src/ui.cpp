@@ -287,10 +287,13 @@ void openTrackerView(const String& bssidStr, const String& ssid, uint8_t channel
     lv_obj_set_style_text_font(s_tracker_lbl_bssid_ch, &lv_font_montserrat_10, LV_PART_MAIN);
     lv_obj_align(s_tracker_lbl_bssid_ch, LV_ALIGN_TOP_LEFT, 4, 22);
 
+    int flavor = getCurrentThemeFlavor();
     s_tracker_btn_exit = lv_btn_create(s_tracker_view);
     lv_obj_set_size(s_tracker_btn_exit, 65, 26);
     lv_obj_align(s_tracker_btn_exit, LV_ALIGN_TOP_RIGHT, 0, 2);
-    lv_obj_set_style_bg_color(s_tracker_btn_exit, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(s_tracker_btn_exit, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface1) : TO_LV_COLOR(p.surface0)), LV_PART_MAIN);
+    lv_obj_set_style_border_color(s_tracker_btn_exit, TO_LV_COLOR(p.surface2), LV_PART_MAIN);
+    lv_obj_set_style_border_width(s_tracker_btn_exit, 1, LV_PART_MAIN);
     lv_obj_set_style_radius(s_tracker_btn_exit, 4, LV_PART_MAIN);
     lv_obj_add_event_cb(s_tracker_btn_exit, on_tracker_exit_clicked, LV_EVENT_CLICKED, nullptr);
 
@@ -312,7 +315,7 @@ void openTrackerView(const String& bssidStr, const String& ssid, uint8_t channel
     lv_obj_remove_style(s_tracker_meter_arc, NULL, LV_PART_KNOB);
     lv_obj_set_style_arc_width(s_tracker_meter_arc, 9, LV_PART_MAIN);
     lv_obj_set_style_arc_width(s_tracker_meter_arc, 9, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_color(s_tracker_meter_arc, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+    lv_obj_set_style_arc_color(s_tracker_meter_arc, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface1) : TO_LV_COLOR(p.surface0)), LV_PART_MAIN);
     lv_obj_set_style_arc_color(s_tracker_meter_arc, TO_LV_COLOR(p.green), LV_PART_INDICATOR);
 
     s_tracker_lbl_rssi = lv_label_create(s_tracker_view);
@@ -330,7 +333,7 @@ void openTrackerView(const String& bssidStr, const String& ssid, uint8_t channel
     // 3. Right Column: Trend & Rolling Real-time Chart
     s_tracker_lbl_trend = lv_label_create(s_tracker_view);
     lv_label_set_text(s_tracker_lbl_trend, LV_SYMBOL_MINUS " SEARCHING");
-    lv_obj_set_style_text_color(s_tracker_lbl_trend, TO_LV_COLOR(p.yellow), LV_PART_MAIN);
+    lv_obj_set_style_text_color(s_tracker_lbl_trend, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.peach) : TO_LV_COLOR(p.yellow)), LV_PART_MAIN);
     lv_obj_set_style_text_font(s_tracker_lbl_trend, &lv_font_montserrat_14, LV_PART_MAIN);
     lv_obj_align(s_tracker_lbl_trend, LV_ALIGN_TOP_LEFT, 150, 42);
 
@@ -346,6 +349,7 @@ void openTrackerView(const String& bssidStr, const String& ssid, uint8_t channel
     lv_obj_set_style_border_color(s_tracker_chart, TO_LV_COLOR(p.surface1), LV_PART_MAIN);
     lv_obj_set_style_border_width(s_tracker_chart, 1, LV_PART_MAIN);
     lv_obj_set_style_radius(s_tracker_chart, 4, LV_PART_MAIN);
+    lv_obj_set_style_line_width(s_tracker_chart, 2, LV_PART_ITEMS);
 
     s_tracker_ser = lv_chart_add_series(s_tracker_chart, TO_LV_COLOR(p.mauve), LV_CHART_AXIS_PRIMARY_Y);
     for (size_t i = 0; i < WifiAnalyzer::MAX_TRACKER_HISTORY; i++) {
@@ -357,7 +361,9 @@ void openTrackerView(const String& bssidStr, const String& ssid, uint8_t channel
     s_tracker_btn_audio = lv_btn_create(s_tracker_view);
     lv_obj_set_size(s_tracker_btn_audio, 110, 28);
     lv_obj_align(s_tracker_btn_audio, LV_ALIGN_BOTTOM_LEFT, 4, -4);
-    lv_obj_set_style_bg_color(s_tracker_btn_audio, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(s_tracker_btn_audio, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface1) : TO_LV_COLOR(p.surface0)), LV_PART_MAIN);
+    lv_obj_set_style_border_color(s_tracker_btn_audio, TO_LV_COLOR(p.surface2), LV_PART_MAIN);
+    lv_obj_set_style_border_width(s_tracker_btn_audio, 1, LV_PART_MAIN);
     lv_obj_set_style_radius(s_tracker_btn_audio, 4, LV_PART_MAIN);
     lv_obj_add_event_cb(s_tracker_btn_audio, on_tracker_audio_toggle_clicked, LV_EVENT_CLICKED, nullptr);
 
@@ -422,6 +428,10 @@ static void showNetworkDetailModal(const AccessPointInfo& ap) {
     lv_obj_set_style_shadow_opa(s_detail_modal, LV_OPA_80, LV_PART_MAIN);
     lv_obj_set_style_pad_all(s_detail_modal, 8, LV_PART_MAIN);
 
+    int flavor = getCurrentThemeFlavor();
+    lv_color_t btn_bg = (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface1) : TO_LV_COLOR(p.surface0));
+    lv_color_t btn_border = TO_LV_COLOR(p.surface2);
+
     // 1. Header: SSID & Close Button
     lv_obj_t* lbl_ssid = lv_label_create(s_detail_modal);
     lv_label_set_text(lbl_ssid, ap.ssid.c_str());
@@ -434,14 +444,16 @@ static void showNetworkDetailModal(const AccessPointInfo& ap) {
     lv_obj_t* btn_close = lv_btn_create(s_detail_modal);
     lv_obj_set_size(btn_close, 26, 24);
     lv_obj_align(btn_close, LV_ALIGN_TOP_RIGHT, 0, 0);
-    lv_obj_set_style_bg_color(btn_close, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(btn_close, btn_bg, LV_PART_MAIN);
+    lv_obj_set_style_border_color(btn_close, btn_border, LV_PART_MAIN);
+    lv_obj_set_style_border_width(btn_close, 1, LV_PART_MAIN);
     lv_obj_set_style_radius(btn_close, 4, LV_PART_MAIN);
     lv_obj_set_style_pad_all(btn_close, 0, LV_PART_MAIN);
     lv_obj_add_event_cb(btn_close, on_close_modal_clicked, LV_EVENT_CLICKED, nullptr);
 
     lv_obj_t* lbl_close_sym = lv_label_create(btn_close);
     lv_label_set_text(lbl_close_sym, LV_SYMBOL_CLOSE);
-    lv_obj_set_style_text_color(lbl_close_sym, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
+    lv_obj_set_style_text_color(lbl_close_sym, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.text) : TO_LV_COLOR(p.subtext0)), LV_PART_MAIN);
     lv_obj_center(lbl_close_sym);
 
     // 2. Info Row 1: BSSID & Frequency
@@ -481,8 +493,10 @@ static void showNetworkDetailModal(const AccessPointInfo& ap) {
     lv_obj_align(s_modal_bar_signal, LV_ALIGN_TOP_LEFT, 2, 66);
     lv_bar_set_range(s_modal_bar_signal, 0, 100);
     lv_bar_set_value(s_modal_bar_signal, quality, LV_ANIM_OFF);
-    lv_obj_set_style_bg_color(s_modal_bar_signal, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
-    lv_obj_set_style_bg_color(s_modal_bar_signal, getChannelLvColor(ap.channel, getCurrentThemeFlavor()), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(s_modal_bar_signal, btn_bg, LV_PART_MAIN);
+    lv_obj_set_style_border_color(s_modal_bar_signal, btn_border, LV_PART_MAIN);
+    lv_obj_set_style_border_width(s_modal_bar_signal, 1, LV_PART_MAIN);
+    lv_obj_set_style_bg_color(s_modal_bar_signal, getChannelLvColor(ap.channel, flavor), LV_PART_INDICATOR);
     lv_obj_set_style_radius(s_modal_bar_signal, 4, LV_PART_MAIN);
     lv_obj_set_style_radius(s_modal_bar_signal, 4, LV_PART_INDICATOR);
 
@@ -502,11 +516,12 @@ static void showNetworkDetailModal(const AccessPointInfo& ap) {
     lv_chart_set_div_line_count(s_modal_chart_history, 3, 0);
 
     lv_obj_set_style_bg_color(s_modal_chart_history, TO_LV_COLOR(p.base), LV_PART_MAIN);
-    lv_obj_set_style_border_color(s_modal_chart_history, TO_LV_COLOR(p.surface1), LV_PART_MAIN);
+    lv_obj_set_style_border_color(s_modal_chart_history, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface2) : TO_LV_COLOR(p.surface1)), LV_PART_MAIN);
     lv_obj_set_style_border_width(s_modal_chart_history, 1, LV_PART_MAIN);
     lv_obj_set_style_radius(s_modal_chart_history, 4, LV_PART_MAIN);
+    lv_obj_set_style_line_width(s_modal_chart_history, 2, LV_PART_ITEMS);
 
-    s_modal_ser_history = lv_chart_add_series(s_modal_chart_history, getChannelLvColor(ap.channel, getCurrentThemeFlavor()), LV_CHART_AXIS_PRIMARY_Y);
+    s_modal_ser_history = lv_chart_add_series(s_modal_chart_history, getChannelLvColor(ap.channel, flavor), LV_CHART_AXIS_PRIMARY_Y);
 
     const auto& history = wifiAnalyzer.getRssiHistory(ap.bssidStr);
     for (size_t h = 0; h < WifiAnalyzer::MAX_HISTORY_SAMPLES; h++) {
@@ -522,7 +537,9 @@ static void showNetworkDetailModal(const AccessPointInfo& ap) {
     lv_obj_t* btn_track = lv_btn_create(s_detail_modal);
     lv_obj_set_size(btn_track, 134, 28);
     lv_obj_align(btn_track, LV_ALIGN_BOTTOM_LEFT, 2, -2);
-    lv_obj_set_style_bg_color(btn_track, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(btn_track, btn_bg, LV_PART_MAIN);
+    lv_obj_set_style_border_color(btn_track, btn_border, LV_PART_MAIN);
+    lv_obj_set_style_border_width(btn_track, 1, LV_PART_MAIN);
     lv_obj_set_style_radius(btn_track, 4, LV_PART_MAIN);
     lv_obj_add_event_cb(btn_track, on_track_ap_clicked, LV_EVENT_CLICKED, nullptr);
 
@@ -535,13 +552,15 @@ static void showNetworkDetailModal(const AccessPointInfo& ap) {
     lv_obj_t* btn_bottom_close = lv_btn_create(s_detail_modal);
     lv_obj_set_size(btn_bottom_close, 134, 28);
     lv_obj_align(btn_bottom_close, LV_ALIGN_BOTTOM_RIGHT, -2, -2);
-    lv_obj_set_style_bg_color(btn_bottom_close, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(btn_bottom_close, btn_bg, LV_PART_MAIN);
+    lv_obj_set_style_border_color(btn_bottom_close, btn_border, LV_PART_MAIN);
+    lv_obj_set_style_border_width(btn_bottom_close, 1, LV_PART_MAIN);
     lv_obj_set_style_radius(btn_bottom_close, 4, LV_PART_MAIN);
     lv_obj_add_event_cb(btn_bottom_close, on_close_modal_clicked, LV_EVENT_CLICKED, nullptr);
 
     lv_obj_t* lbl_bottom_close = lv_label_create(btn_bottom_close);
     lv_label_set_text(lbl_bottom_close, LV_SYMBOL_CLOSE " Close");
-    lv_obj_set_style_text_color(lbl_bottom_close, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
+    lv_obj_set_style_text_color(lbl_bottom_close, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.text) : TO_LV_COLOR(p.subtext0)), LV_PART_MAIN);
     lv_obj_set_style_text_font(lbl_bottom_close, &lv_font_montserrat_10, LV_PART_MAIN);
     lv_obj_center(lbl_bottom_close);
 }
@@ -554,6 +573,51 @@ static void on_network_clicked(lv_event_t* e) {
     }
 }
 
+static void on_channels_table_draw_cell(lv_event_t* e) {
+    lv_obj_draw_part_dsc_t* dsc = lv_event_get_draw_part_dsc(e);
+    if (!dsc || dsc->part != LV_PART_ITEMS) return;
+
+    lv_obj_t* table = lv_event_get_target(e);
+    uint16_t col_cnt = lv_table_get_col_cnt(table);
+    if (col_cnt == 0) return;
+
+    uint16_t row = dsc->id / col_cnt;
+    uint16_t col = dsc->id % col_cnt;
+    int flavor = getCurrentThemeFlavor();
+    const auto& p = getCatppuccinFlavor(flavor);
+
+    if (row == 0) {
+        if (dsc->rect_dsc) dsc->rect_dsc->bg_color = TO_LV_COLOR(p.mantle);
+        if (dsc->label_dsc) dsc->label_dsc->color = TO_LV_COLOR(p.mauve);
+    } else {
+        if (dsc->rect_dsc) {
+            dsc->rect_dsc->bg_color = (row % 2 == 0) ? TO_LV_COLOR(p.mantle) : TO_LV_COLOR(p.base);
+            dsc->rect_dsc->border_color = TO_LV_COLOR(p.surface1);
+        }
+
+        if (dsc->label_dsc) {
+            if (col == 0) {
+                dsc->label_dsc->color = getChannelLvColor(row, flavor);
+            } else if (col == 3) {
+                const char* val = lv_table_get_cell_value(table, row, col);
+                if (val) {
+                    if (strcmp(val, "Clean") == 0) {
+                        dsc->label_dsc->color = TO_LV_COLOR(p.green);
+                    } else if (strcmp(val, "Good") == 0) {
+                        dsc->label_dsc->color = TO_LV_COLOR(p.teal);
+                    } else if (strcmp(val, "Fair") == 0) {
+                        dsc->label_dsc->color = (flavor == CATPPUCCIN_LATTE) ? TO_LV_COLOR(p.peach) : TO_LV_COLOR(p.yellow);
+                    } else if (strcmp(val, "Congested") == 0) {
+                        dsc->label_dsc->color = TO_LV_COLOR(p.red);
+                    }
+                }
+            } else {
+                dsc->label_dsc->color = TO_LV_COLOR(p.text);
+            }
+        }
+    }
+}
+
 static void on_spectrum_draw(lv_event_t* e) {
     lv_event_code_t code = lv_event_get_code(e);
     if (code != LV_EVENT_DRAW_POST) return;
@@ -562,7 +626,8 @@ static void on_spectrum_draw(lv_event_t* e) {
     lv_draw_ctx_t* draw_ctx = lv_event_get_draw_ctx(e);
     if (!draw_ctx) return;
 
-    const auto& p = getCatppuccinFlavor(getCurrentThemeFlavor());
+    int flavor = getCurrentThemeFlavor();
+    const auto& p = getCatppuccinFlavor(flavor);
 
     lv_area_t coords;
     lv_obj_get_coords(obj, &coords);
@@ -584,7 +649,7 @@ static void on_spectrum_draw(lv_event_t* e) {
     // 1. Draw dBm horizontal grid lines & labels (-90, -70, -50 dBm)
     lv_draw_line_dsc_t grid_dsc;
     lv_draw_line_dsc_init(&grid_dsc);
-    grid_dsc.color = TO_LV_COLOR(p.surface0);
+    grid_dsc.color = (flavor == CATPPUCCIN_LATTE) ? TO_LV_COLOR(p.surface2) : TO_LV_COLOR(p.surface1);
     grid_dsc.width = 1;
     grid_dsc.dash_width = 3;
     grid_dsc.dash_gap = 3;
@@ -613,7 +678,7 @@ static void on_spectrum_draw(lv_event_t* e) {
     // 2. Draw Baseline Axis
     lv_draw_line_dsc_t axis_dsc;
     lv_draw_line_dsc_init(&axis_dsc);
-    axis_dsc.color = TO_LV_COLOR(p.surface1);
+    axis_dsc.color = (flavor == CATPPUCCIN_LATTE) ? TO_LV_COLOR(p.surface2) : TO_LV_COLOR(p.surface1);
     axis_dsc.width = 2;
     lv_point_t base1 = {left, bottom};
     lv_point_t base2 = {right, bottom};
@@ -711,7 +776,7 @@ static void on_spectrum_draw(lv_event_t* e) {
                 snprintf(tag, sizeof(tag), "%.8s %ddB", ap.ssid.c_str(), (int)ap.rssi);
             }
 
-            label_dsc.color = curve_dsc.color;
+            label_dsc.color = (flavor == CATPPUCCIN_LATTE) ? TO_LV_COLOR(p.text) : curve_dsc.color;
             label_dsc.font = &lv_font_montserrat_10;
             label_dsc.align = LV_TEXT_ALIGN_CENTER;
             label_dsc.flag = LV_TEXT_FLAG_NONE;
@@ -740,8 +805,54 @@ static void on_spectrum_draw(lv_event_t* e) {
     }
 }
 
+static void styleSettingsControls(const Catppuccin::Palette& p, int flavor) {
+    lv_color_t track_bg = (flavor == CATPPUCCIN_LATTE) ? TO_LV_COLOR(p.surface1) : TO_LV_COLOR(p.surface0);
+    lv_color_t track_border = TO_LV_COLOR(p.surface2);
+    lv_color_t active_bg = TO_LV_COLOR(p.blue);
+    lv_color_t knob_bg = (flavor == CATPPUCCIN_LATTE) ? TO_LV_COLOR(p.base) : TO_LV_COLOR(p.text);
+
+    lv_obj_t* dropdowns[] = {s_dropdown_theme, s_dropdown_interval, s_dropdown_rotation};
+    for (lv_obj_t* d : dropdowns) {
+        if (d) {
+            lv_obj_set_style_bg_color(d, TO_LV_COLOR(p.mantle), LV_PART_MAIN);
+            lv_obj_set_style_border_color(d, TO_LV_COLOR(p.surface1), LV_PART_MAIN);
+            lv_obj_set_style_border_width(d, 1, LV_PART_MAIN);
+            lv_obj_set_style_text_color(d, TO_LV_COLOR(p.text), LV_PART_MAIN);
+        }
+    }
+
+    lv_obj_t* sliders[] = {s_slider_brightness, s_slider_led_bright};
+    for (lv_obj_t* sl : sliders) {
+        if (sl) {
+            lv_obj_set_style_bg_color(sl, track_bg, LV_PART_MAIN);
+            lv_obj_set_style_border_color(sl, track_border, LV_PART_MAIN);
+            lv_obj_set_style_border_width(sl, 1, LV_PART_MAIN);
+            lv_obj_set_style_bg_color(sl, active_bg, LV_PART_INDICATOR);
+            lv_obj_set_style_bg_color(sl, active_bg, LV_PART_KNOB);
+        }
+    }
+
+    lv_obj_t* switches[] = {s_switch_auto_bright, s_switch_passive, s_switch_led};
+    for (lv_obj_t* sw : switches) {
+        if (sw) {
+            lv_obj_set_style_bg_color(sw, track_bg, LV_PART_MAIN);
+            lv_obj_set_style_border_color(sw, track_border, LV_PART_MAIN);
+            lv_obj_set_style_border_width(sw, 1, LV_PART_MAIN);
+            lv_obj_set_style_bg_color(sw, active_bg, LV_PART_INDICATOR | LV_STATE_CHECKED);
+            lv_obj_set_style_bg_color(sw, knob_bg, LV_PART_KNOB);
+        }
+    }
+
+    if (s_btn_reset) {
+        lv_obj_set_style_bg_color(s_btn_reset, track_bg, LV_PART_MAIN);
+        lv_obj_set_style_border_color(s_btn_reset, track_border, LV_PART_MAIN);
+        lv_obj_set_style_border_width(s_btn_reset, 1, LV_PART_MAIN);
+    }
+}
+
 void initUI() {
-    const auto& p = getCatppuccinFlavor(getCurrentThemeFlavor());
+    int flavor = getCurrentThemeFlavor();
+    const auto& p = getCatppuccinFlavor(flavor);
 
     lv_obj_t* scr = lv_scr_act();
     lv_obj_set_style_bg_color(scr, TO_LV_COLOR(p.base), LV_PART_MAIN);
@@ -753,7 +864,7 @@ void initUI() {
     lv_obj_t* tab_btns = lv_tabview_get_tab_btns(s_tabview);
     lv_obj_set_style_bg_color(tab_btns, TO_LV_COLOR(p.mantle), LV_PART_MAIN);
     lv_obj_set_style_text_color(tab_btns, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
-    lv_obj_set_style_bg_color(tab_btns, TO_LV_COLOR(p.surface0), LV_PART_ITEMS | LV_STATE_CHECKED);
+    lv_obj_set_style_bg_color(tab_btns, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface1) : TO_LV_COLOR(p.surface0)), LV_PART_ITEMS | LV_STATE_CHECKED);
     lv_obj_set_style_text_color(tab_btns, TO_LV_COLOR(p.mauve), LV_PART_ITEMS | LV_STATE_CHECKED);
 
     s_tab_spectrum = lv_tabview_add_tab(s_tabview, "Spectrum");
@@ -811,6 +922,7 @@ void initUI() {
     lv_obj_set_style_pad_right(s_table_channels, 4, LV_PART_ITEMS);
     lv_obj_set_style_pad_top(s_table_channels, 6, LV_PART_ITEMS);
     lv_obj_set_style_pad_bottom(s_table_channels, 6, LV_PART_ITEMS);
+    lv_obj_add_event_cb(s_table_channels, on_channels_table_draw_cell, LV_EVENT_DRAW_PART_BEGIN, nullptr);
 
     lv_table_set_cell_value(s_table_channels, 0, 0, "Ch");
     lv_table_set_cell_value(s_table_channels, 0, 1, "APs");
@@ -940,12 +1052,15 @@ void initUI() {
     lv_label_set_text(s_lbl_info, "ESP32 CYD Wi-Fi Analyzer\nEngine: LVGL v8 + Catppuccin RGB565");
     lv_obj_set_style_text_color(s_lbl_info, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
     lv_obj_align(s_lbl_info, LV_ALIGN_TOP_LEFT, 10, 376);
+
+    styleSettingsControls(p, flavor);
 }
 
 void updateUI() {
     if (wifiAnalyzer.isTracking()) {
         if (!s_tracker_view) return;
-        const auto& p = getCatppuccinFlavor(getCurrentThemeFlavor());
+        int flavor = getCurrentThemeFlavor();
+        const auto& p = getCatppuccinFlavor(flavor);
         int32_t rssi = wifiAnalyzer.getTargetRssi();
         uint8_t q = rssiToQuality(rssi);
 
@@ -954,7 +1069,7 @@ void updateUI() {
             lv_color_t arc_color;
             if (q >= 70) arc_color = TO_LV_COLOR(p.green);
             else if (q >= 45) arc_color = TO_LV_COLOR(p.sapphire);
-            else if (q >= 20) arc_color = TO_LV_COLOR(p.yellow);
+            else if (q >= 20) arc_color = (flavor == CATPPUCCIN_LATTE) ? TO_LV_COLOR(p.peach) : TO_LV_COLOR(p.yellow);
             else arc_color = TO_LV_COLOR(p.red);
             lv_obj_set_style_arc_color(s_tracker_meter_arc, arc_color, LV_PART_INDICATOR);
         }
@@ -985,7 +1100,7 @@ void updateUI() {
                 lv_obj_set_style_text_color(s_tracker_lbl_trend, TO_LV_COLOR(p.red), LV_PART_MAIN);
             } else {
                 lv_label_set_text(s_tracker_lbl_trend, LV_SYMBOL_MINUS " STABLE");
-                lv_obj_set_style_text_color(s_tracker_lbl_trend, TO_LV_COLOR(p.yellow), LV_PART_MAIN);
+                lv_obj_set_style_text_color(s_tracker_lbl_trend, (flavor == CATPPUCCIN_LATTE) ? TO_LV_COLOR(p.peach) : TO_LV_COLOR(p.yellow), LV_PART_MAIN);
             }
         }
 
@@ -1062,13 +1177,31 @@ void updateUI() {
                  (int)ap.rssi,
                  shortAuth);
 
+        int flavor = getCurrentThemeFlavor();
         lv_obj_t* btn = lv_list_add_btn(s_list_networks, LV_SYMBOL_WIFI, btnText);
         lv_obj_set_style_pad_left(btn, 6, LV_PART_MAIN);
         lv_obj_set_style_pad_right(btn, 6, LV_PART_MAIN);
         lv_obj_set_style_pad_top(btn, 5, LV_PART_MAIN);
         lv_obj_set_style_pad_bottom(btn, 5, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(btn, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
-        lv_obj_set_style_text_color(btn, TO_LV_COLOR(getChannelColor(ap.channel, getCurrentThemeFlavor())), LV_PART_MAIN);
+        lv_obj_set_style_bg_color(btn, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.mantle) : TO_LV_COLOR(p.surface0)), LV_PART_MAIN);
+        lv_obj_set_style_border_color(btn, TO_LV_COLOR(p.surface1), LV_PART_MAIN);
+        lv_obj_set_style_border_width(btn, 1, LV_PART_MAIN);
+        lv_obj_set_style_radius(btn, 4, LV_PART_MAIN);
+
+        lv_color_t chanColor = getChannelLvColor(ap.channel, flavor);
+        uint32_t cnt = lv_obj_get_child_cnt(btn);
+        if (cnt >= 2) {
+            lv_obj_t* icon_obj = lv_obj_get_child(btn, 0);
+            lv_obj_t* label_obj = lv_obj_get_child(btn, 1);
+            lv_obj_set_style_text_color(icon_obj, chanColor, LV_PART_MAIN);
+            if (flavor == CATPPUCCIN_LATTE) {
+                lv_obj_set_style_text_color(label_obj, TO_LV_COLOR(p.text), LV_PART_MAIN);
+            } else {
+                lv_obj_set_style_text_color(label_obj, chanColor, LV_PART_MAIN);
+            }
+        } else {
+            lv_obj_set_style_text_color(btn, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.text) : chanColor), LV_PART_MAIN);
+        }
         lv_obj_set_user_data(btn, (void*)(uintptr_t)i);
         lv_obj_add_event_cb(btn, on_network_clicked, LV_EVENT_CLICKED, nullptr);
     }
@@ -1125,7 +1258,8 @@ void updateUI() {
 }
 
 void refreshThemeUI() {
-    const auto& p = getCatppuccinFlavor(getCurrentThemeFlavor());
+    int flavor = getCurrentThemeFlavor();
+    const auto& p = getCatppuccinFlavor(flavor);
 
     lv_obj_set_style_bg_color(lv_scr_act(), TO_LV_COLOR(p.base), LV_PART_MAIN);
     lv_obj_set_style_bg_color(s_tabview, TO_LV_COLOR(p.base), LV_PART_MAIN);
@@ -1133,12 +1267,21 @@ void refreshThemeUI() {
     lv_obj_t* tab_btns = lv_tabview_get_tab_btns(s_tabview);
     lv_obj_set_style_bg_color(tab_btns, TO_LV_COLOR(p.mantle), LV_PART_MAIN);
     lv_obj_set_style_text_color(tab_btns, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
-    lv_obj_set_style_bg_color(tab_btns, TO_LV_COLOR(p.surface0), LV_PART_ITEMS | LV_STATE_CHECKED);
+    lv_obj_set_style_bg_color(tab_btns, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface1) : TO_LV_COLOR(p.surface0)), LV_PART_ITEMS | LV_STATE_CHECKED);
     lv_obj_set_style_text_color(tab_btns, TO_LV_COLOR(p.mauve), LV_PART_ITEMS | LV_STATE_CHECKED);
 
     lv_obj_set_style_text_color(s_lbl_spectrum_summary, TO_LV_COLOR(p.text), LV_PART_MAIN);
     lv_obj_set_style_bg_color(s_spectrum_view, TO_LV_COLOR(p.mantle), LV_PART_MAIN);
-    lv_obj_set_style_border_color(s_spectrum_view, TO_LV_COLOR(p.surface1), LV_PART_MAIN);
+    lv_obj_set_style_border_color(s_spectrum_view, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface2) : TO_LV_COLOR(p.surface1)), LV_PART_MAIN);
+
+    if (s_table_channels) {
+        lv_obj_set_style_bg_color(s_table_channels, TO_LV_COLOR(p.base), LV_PART_MAIN);
+        lv_obj_invalidate(s_table_channels);
+    }
+
+    if (s_list_networks) {
+        lv_obj_set_style_bg_color(s_list_networks, TO_LV_COLOR(p.base), LV_PART_MAIN);
+    }
 
     if (s_detail_modal) {
         lv_obj_set_style_bg_color(s_detail_modal, TO_LV_COLOR(p.mantle), LV_PART_MAIN);
@@ -1152,7 +1295,15 @@ void refreshThemeUI() {
             lv_obj_set_style_border_color(s_tracker_chart, TO_LV_COLOR(p.surface1), LV_PART_MAIN);
         }
         if (s_tracker_meter_arc) {
-            lv_obj_set_style_arc_color(s_tracker_meter_arc, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+            lv_obj_set_style_arc_color(s_tracker_meter_arc, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface1) : TO_LV_COLOR(p.surface0)), LV_PART_MAIN);
+        }
+        if (s_tracker_btn_exit) {
+            lv_obj_set_style_bg_color(s_tracker_btn_exit, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface1) : TO_LV_COLOR(p.surface0)), LV_PART_MAIN);
+            lv_obj_set_style_border_color(s_tracker_btn_exit, TO_LV_COLOR(p.surface2), LV_PART_MAIN);
+        }
+        if (s_tracker_btn_audio) {
+            lv_obj_set_style_bg_color(s_tracker_btn_audio, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.surface1) : TO_LV_COLOR(p.surface0)), LV_PART_MAIN);
+            lv_obj_set_style_border_color(s_tracker_btn_audio, TO_LV_COLOR(p.surface2), LV_PART_MAIN);
         }
     }
 
@@ -1164,8 +1315,9 @@ void refreshThemeUI() {
     if (s_lbl_rotation) lv_obj_set_style_text_color(s_lbl_rotation, TO_LV_COLOR(p.text), LV_PART_MAIN);
     if (s_lbl_led) lv_obj_set_style_text_color(s_lbl_led, TO_LV_COLOR(p.text), LV_PART_MAIN);
     if (s_lbl_led_bright) lv_obj_set_style_text_color(s_lbl_led_bright, TO_LV_COLOR(p.text), LV_PART_MAIN);
-    if (s_btn_reset) lv_obj_set_style_bg_color(s_btn_reset, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
     if (s_lbl_info) lv_obj_set_style_text_color(s_lbl_info, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
+
+    styleSettingsControls(p, flavor);
 
     updateUI();
 }
@@ -1210,4 +1362,33 @@ void showUIStatusMessage(const char* message) {
     }
 
     lv_obj_del_delayed(card, 2000);
+}
+
+void openDetailModal() {
+    const auto& aps = wifiAnalyzer.getAccessPoints();
+    if (!aps.empty()) {
+        showNetworkDetailModal(aps[0]);
+    } else {
+        AccessPointInfo demoAp;
+        demoAp.ssid = "Home-WiFi";
+        demoAp.bssidStr = "AA:BB:CC:DD:EE:FF";
+        demoAp.channel = 6;
+        demoAp.rssi = -58;
+        demoAp.authMode = 3;
+        demoAp.isHidden = false;
+        showNetworkDetailModal(demoAp);
+    }
+}
+
+void closeDetailModal() {
+    on_close_modal_clicked(nullptr);
+}
+
+void openTrackerDemo() {
+    const auto& aps = wifiAnalyzer.getAccessPoints();
+    if (!aps.empty()) {
+        openTrackerView(aps[0].bssidStr, aps[0].ssid, aps[0].channel);
+    } else {
+        openTrackerView("AA:BB:CC:DD:EE:FF", "Home-WiFi", 6);
+    }
 }

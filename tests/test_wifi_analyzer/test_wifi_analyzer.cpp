@@ -142,6 +142,30 @@ void test_catppuccin_channel_colors(void) {
     }
 }
 
+void test_catppuccin_latte_channel_colors(void) {
+    // Ensure all 14 channels return distinct non-zero colors in Latte
+    for (uint8_t c = 1; c <= 14; c++) {
+        uint16_t color = getChannelColor(c, CATPPUCCIN_LATTE);
+        TEST_ASSERT_NOT_EQUAL(0, color);
+        lv_color_t lvCol = getChannelLvColor(c, CATPPUCCIN_LATTE);
+        TEST_ASSERT_EQUAL_HEX16(color, lvCol.full);
+    }
+}
+
+void test_catppuccin_latte_contrast_tokens(void) {
+    const auto& p = getCatppuccinFlavor(CATPPUCCIN_LATTE);
+    // Base and Mantle are light tones
+    TEST_ASSERT_NOT_EQUAL(0, p.base);
+    TEST_ASSERT_NOT_EQUAL(0, p.mantle);
+    // Text and subtext0 are contrasting dark tones
+    TEST_ASSERT_NOT_EQUAL(p.base, p.text);
+    TEST_ASSERT_NOT_EQUAL(p.mantle, p.text);
+    TEST_ASSERT_NOT_EQUAL(p.mantle, p.subtext0);
+    // Surface1 provides distinct contrast from mantle/base for borders and tracks
+    TEST_ASSERT_NOT_EQUAL(p.mantle, p.surface1);
+    TEST_ASSERT_NOT_EQUAL(p.base, p.surface1);
+}
+
 void test_calculate_parabola_y(void) {
     float cx = 100.0f;
     float spread = 40.0f;
@@ -290,6 +314,8 @@ int main(void) {
     RUN_TEST(test_channel_analysis_single_network);
     RUN_TEST(test_duplicate_bssid_virtual_ssid_handling);
     RUN_TEST(test_catppuccin_channel_colors);
+    RUN_TEST(test_catppuccin_latte_channel_colors);
+    RUN_TEST(test_catppuccin_latte_contrast_tokens);
     RUN_TEST(test_calculate_parabola_y);
     RUN_TEST(test_channel_to_frequency);
     RUN_TEST(test_rssi_history_tracking);

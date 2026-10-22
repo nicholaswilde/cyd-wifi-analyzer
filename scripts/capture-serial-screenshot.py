@@ -154,7 +154,9 @@ def main():
     parser.add_argument("-p", "--port", default="", help="Serial port (auto-detected if omitted).")
     parser.add_argument("-b", "--baud", type=int, default=115200, help="Baud rate (default: 115200).")
     parser.add_argument("-t", "--tab", type=int, default=-1, help="Switch to tab index (0=Spectrum, 1=Networks, 2=Channels, 3=Settings) before capture.")
-    parser.add_argument("--all", action="store_true", help="Capture all 4 tabs in sequence.")
+    parser.add_argument("--modal", action="store_true", help="Open Network Detail Modal before capture.")
+    parser.add_argument("--tracker", action="store_true", help="Open Tracker View before capture.")
+    parser.add_argument("--all", action="store_true", help="Capture all 4 tabs, Detail Modal, and Tracker View in sequence.")
     parser.add_argument("--raw", action="store_true", help="Use raw 24-bit BMP instead of RLE compression.")
     args = parser.parse_args()
 
@@ -168,12 +170,14 @@ def main():
 
     print(f"Connecting to CYD on {port} @ {args.baud} baud...")
     with serial.Serial(port, args.baud, timeout=1.0) as ser:
-        time.sleep(1.0)  # Allow DTR settling
+        time.sleep(2.0)  # Allow DTR settling and ESP32 boot
+        ser.reset_input_buffer()
 
         tab_names = ["spectrum", "networks", "channels", "settings"]
 
         if args.all:
-            print("Capturing all 4 screens in sequence...")
+            print("Capturing all screens in sequence...")
+            # 1. Capture all 4 tabs
             for idx, name in enumerate(tab_names):
                 print(f"Switching to Tab {idx} ({name})...")
                 ser.write(f"tab {idx}\n".encode("ascii"))
@@ -183,7 +187,71 @@ def main():
                 out_path = f"screenshots/{name}.png"
                 img.save(out_path)
                 print(f"  Saved {out_path} ({img.width}x{img.height})")
-            print("All tabs captured successfully.")
+
+            # 2. Capture Network Detail Modal
+            print("Opening Network Detail Modal...")
+            ser.write(b"modal\n")
+            ser.flush()
+            time.sleep(1.2)
+            img = capture_frame(ser, fmt_cmd)
+            out_path = "screenshots/modal.png"
+            img.save(out_path)
+            print(f"  Saved {out_path} ({img.width}x{img.height})")
+            ser.write(b"modal close\n")
+            ser.flush()
+            time.sleep(0.6)
+
+            # 3. Capture Tracker View
+            print("Opening Tracker View...")
+            ser.write(b"tracker\n")
+            ser.flush()
+            time.sleep(1.2)
+            img = capture_frame(ser, fmt_cmd)
+            out_path = "screenshots/tracker.png"
+            img.save(out_path)
+            print(f"  Saved {out_path} ({img.width}x{img.height})")
+            ser.write(b"tracker close\n")
+            ser.flush()
+            time.sleep(0.6)
+
+            # Return to Tab 0 (Spectrum)
+            ser.write(b"tab 0\n")
+            ser.flush()
+            time.sleep(0.5)
+
+            # Update latest shortcut to spectrum
+            img_spec = Image.open("screenshots/spectrum.png")
+            img_spec.save("screenshots/latest.png")
+
+            print("All screens captured successfully.")
+            return
+
+        if args.modal:
+            print("Opening Network Detail Modal...")
+            ser.write(b"modal\n")
+            ser.flush()
+            time.sleep(1.2)
+            img = capture_frame(ser, fmt_cmd)
+            out_path = args.output or "screenshots/modal.png"
+            img.save(out_path)
+            img.save("screenshots/latest.png")
+            print(f"Detail Modal saved to: {out_path}")
+            ser.write(b"modal close\n")
+            ser.flush()
+            return
+
+        if args.tracker:
+            print("Opening Tracker View...")
+            ser.write(b"tracker\n")
+            ser.flush()
+            time.sleep(1.2)
+            img = capture_frame(ser, fmt_cmd)
+            out_path = args.output or "screenshots/tracker.png"
+            img.save(out_path)
+            img.save("screenshots/latest.png")
+            print(f"Tracker View saved to: {out_path}")
+            ser.write(b"tracker close\n")
+            ser.flush()
             return
 
         if args.tab >= 0:

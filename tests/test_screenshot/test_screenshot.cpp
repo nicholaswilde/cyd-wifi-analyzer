@@ -7,14 +7,23 @@
 #include "../../src/screenshot_manager.cpp"
 #include "ui.h"
 
-// Mock setTab / getTab for native testing
+// Mock setTab / getTab / modal / tracker for native testing
 static uint16_t s_mock_current_tab = 0;
+static bool s_mock_modal_open = false;
+static bool s_mock_tracker_open = false;
 void setTab(uint16_t index) { s_mock_current_tab = index; }
 uint16_t getTab() { return s_mock_current_tab; }
+void openDetailModal() { s_mock_modal_open = true; }
+void closeDetailModal() { s_mock_modal_open = false; }
+void openTrackerView(const String&, const String&, uint8_t) { s_mock_tracker_open = true; }
+void openTrackerDemo() { s_mock_tracker_open = true; }
+void closeTrackerView() { s_mock_tracker_open = false; }
 
 void setUp(void) {
     ScreenshotManager::init();
     s_mock_current_tab = 0;
+    s_mock_modal_open = false;
+    s_mock_tracker_open = false;
 }
 
 void tearDown(void) {
@@ -165,6 +174,20 @@ void test_screenshot_command_parsing(void) {
 
     ScreenshotManager::handleCommand("tab 0");
     TEST_ASSERT_EQUAL_UINT16(0, s_mock_current_tab);
+
+    // Test detail modal command
+    ScreenshotManager::handleCommand("modal");
+    TEST_ASSERT_TRUE(s_mock_modal_open);
+
+    ScreenshotManager::handleCommand("modal close");
+    TEST_ASSERT_FALSE(s_mock_modal_open);
+
+    // Test tracker view command
+    ScreenshotManager::handleCommand("tracker");
+    TEST_ASSERT_TRUE(s_mock_tracker_open);
+
+    ScreenshotManager::handleCommand("tracker close");
+    TEST_ASSERT_FALSE(s_mock_tracker_open);
 
     // Test startCapture
     bool started = ScreenshotManager::startCapture(FORMAT_RLE16);
