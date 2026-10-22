@@ -837,8 +837,8 @@ void initUI() {
     s_dropdown_theme = lv_dropdown_create(s_tab_settings);
     lv_dropdown_set_options(s_dropdown_theme, "Mocha\nMacchiato\nFrappe\nLatte");
     lv_dropdown_set_selected(s_dropdown_theme, settings.getThemeFlavor() - 1);
-    lv_obj_set_size(s_dropdown_theme, 150, LV_SIZE_CONTENT);
-    lv_obj_align(s_dropdown_theme, LV_ALIGN_TOP_LEFT, 125, 6);
+    lv_obj_set_size(s_dropdown_theme, 142, LV_SIZE_CONTENT);
+    lv_obj_align(s_dropdown_theme, LV_ALIGN_TOP_LEFT, 132, 6);
     lv_obj_add_event_cb(s_dropdown_theme, on_theme_changed, LV_EVENT_VALUE_CHANGED, nullptr);
 
     s_lbl_bright = lv_label_create(s_tab_settings);
@@ -849,8 +849,8 @@ void initUI() {
     s_slider_brightness = lv_slider_create(s_tab_settings);
     lv_slider_set_range(s_slider_brightness, 10, 100);
     lv_slider_set_value(s_slider_brightness, settings.getBrightness(), LV_ANIM_OFF);
-    lv_obj_set_size(s_slider_brightness, 150, 12);
-    lv_obj_align(s_slider_brightness, LV_ALIGN_TOP_LEFT, 125, 54);
+    lv_obj_set_size(s_slider_brightness, 142, 12);
+    lv_obj_align(s_slider_brightness, LV_ALIGN_TOP_LEFT, 132, 54);
     lv_obj_add_event_cb(s_slider_brightness, on_brightness_changed, LV_EVENT_VALUE_CHANGED, nullptr);
 
     s_lbl_auto_bright = lv_label_create(s_tab_settings);
@@ -862,7 +862,7 @@ void initUI() {
     if (settings.getAutoBrightness()) {
         lv_obj_add_state(s_switch_auto_bright, LV_STATE_CHECKED);
     }
-    lv_obj_align(s_switch_auto_bright, LV_ALIGN_TOP_LEFT, 125, 80);
+    lv_obj_align(s_switch_auto_bright, LV_ALIGN_TOP_LEFT, 132, 80);
     lv_obj_add_event_cb(s_switch_auto_bright, on_auto_bright_changed, LV_EVENT_VALUE_CHANGED, nullptr);
 
     s_lbl_interval = lv_label_create(s_tab_settings);
@@ -873,8 +873,8 @@ void initUI() {
     s_dropdown_interval = lv_dropdown_create(s_tab_settings);
     lv_dropdown_set_options(s_dropdown_interval, "1s\n2s\n3s\n5s");
     lv_dropdown_set_selected(s_dropdown_interval, scanIntervalToDropdownIdx(settings.getScanIntervalMs()));
-    lv_obj_set_size(s_dropdown_interval, 150, LV_SIZE_CONTENT);
-    lv_obj_align(s_dropdown_interval, LV_ALIGN_TOP_LEFT, 125, 120);
+    lv_obj_set_size(s_dropdown_interval, 142, LV_SIZE_CONTENT);
+    lv_obj_align(s_dropdown_interval, LV_ALIGN_TOP_LEFT, 132, 120);
     lv_obj_add_event_cb(s_dropdown_interval, on_interval_changed, LV_EVENT_VALUE_CHANGED, nullptr);
 
     s_lbl_passive = lv_label_create(s_tab_settings);
@@ -886,7 +886,7 @@ void initUI() {
     if (settings.getPassiveScan()) {
         lv_obj_add_state(s_switch_passive, LV_STATE_CHECKED);
     }
-    lv_obj_align(s_switch_passive, LV_ALIGN_TOP_LEFT, 125, 164);
+    lv_obj_align(s_switch_passive, LV_ALIGN_TOP_LEFT, 132, 164);
     lv_obj_add_event_cb(s_switch_passive, on_passive_scan_changed, LV_EVENT_VALUE_CHANGED, nullptr);
 
     s_lbl_rotation = lv_label_create(s_tab_settings);
@@ -897,8 +897,8 @@ void initUI() {
     s_dropdown_rotation = lv_dropdown_create(s_tab_settings);
     lv_dropdown_set_options(s_dropdown_rotation, "Landscape (0\xC2\xB0)\nLandscape (180\xC2\xB0)");
     lv_dropdown_set_selected(s_dropdown_rotation, orientationToDropdownIdx(settings.getScreenOrientation()));
-    lv_obj_set_size(s_dropdown_rotation, 150, LV_SIZE_CONTENT);
-    lv_obj_align(s_dropdown_rotation, LV_ALIGN_TOP_LEFT, 125, 204);
+    lv_obj_set_size(s_dropdown_rotation, 142, LV_SIZE_CONTENT);
+    lv_obj_align(s_dropdown_rotation, LV_ALIGN_TOP_LEFT, 132, 204);
     lv_obj_add_event_cb(s_dropdown_rotation, on_rotation_changed, LV_EVENT_VALUE_CHANGED, nullptr);
 
     s_lbl_led = lv_label_create(s_tab_settings);
@@ -910,19 +910,19 @@ void initUI() {
     if (settings.getLedEnabled()) {
         lv_obj_add_state(s_switch_led, LV_STATE_CHECKED);
     }
-    lv_obj_align(s_switch_led, LV_ALIGN_TOP_LEFT, 125, 246);
+    lv_obj_align(s_switch_led, LV_ALIGN_TOP_LEFT, 132, 246);
     lv_obj_add_event_cb(s_switch_led, on_led_toggle_changed, LV_EVENT_VALUE_CHANGED, nullptr);
 
     s_lbl_led_bright = lv_label_create(s_tab_settings);
-    lv_label_set_text(s_lbl_led_bright, "LED Brightness:");
+    lv_label_set_text(s_lbl_led_bright, "LED Bright:");
     lv_obj_set_style_text_color(s_lbl_led_bright, TO_LV_COLOR(p.text), LV_PART_MAIN);
     lv_obj_align(s_lbl_led_bright, LV_ALIGN_TOP_LEFT, 10, 290);
 
     s_slider_led_bright = lv_slider_create(s_tab_settings);
     lv_slider_set_range(s_slider_led_bright, 10, 255);
     lv_slider_set_value(s_slider_led_bright, settings.getLedBrightness(), LV_ANIM_OFF);
-    lv_obj_set_size(s_slider_led_bright, 150, 12);
-    lv_obj_align(s_slider_led_bright, LV_ALIGN_TOP_LEFT, 125, 292);
+    lv_obj_set_size(s_slider_led_bright, 142, 12);
+    lv_obj_align(s_slider_led_bright, LV_ALIGN_TOP_LEFT, 132, 292);
     lv_obj_add_event_cb(s_slider_led_bright, on_led_brightness_changed, LV_EVENT_VALUE_CHANGED, nullptr);
 
     s_btn_reset = lv_btn_create(s_tab_settings);
