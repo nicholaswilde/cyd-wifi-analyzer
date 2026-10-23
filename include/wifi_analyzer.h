@@ -6,6 +6,7 @@
 #include <map>
 #include "config/config.h"
 #include "led_manager.h"
+#include "oui.h"
 
 #ifdef NATIVE_TEST
 #include "Arduino.h"
@@ -23,12 +24,13 @@
 
 struct AccessPointInfo {
     String ssid;
-    uint8_t bssid[6];
+    uint8_t bssid[6] = {0};
     String bssidStr;
-    int32_t rssi;
-    uint8_t channel;
-    uint8_t authMode;
-    bool isHidden;
+    int32_t rssi = -100;
+    uint8_t channel = 1;
+    uint8_t authMode = 0;
+    bool isHidden = false;
+    const char* vendor = nullptr;
 };
 
 struct ChannelInfo {
@@ -61,6 +63,7 @@ void analyzeChannels(const std::vector<AccessPointInfo>& aps, ChannelInfo channe
 float calculateParabolaY(float x, float cx, float spread, float peakHeight, float baseline);
 bool isApFiltered(const AccessPointInfo& ap, uint8_t filterMode);
 std::vector<size_t> filterAndSortAccessPoints(const std::vector<AccessPointInfo>& aps, uint8_t sortMode, uint8_t filterMode);
+const char* getOuiVendor(const AccessPointInfo& ap);
 
 class WifiAnalyzer {
 public:

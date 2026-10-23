@@ -23,12 +23,12 @@ An interactive, touch-screen-enabled 2.4 GHz spectrum analyzer, access point cat
   - Scrollable catalog showing all detected 2.4 GHz networks.
   - Interactive sorting controls: **RSSI (Strongest)**, **SSID (A-Z)**, and **Channel (1-14)**.
   - Interactive filtering controls: **All APs**, **Open Only**, **No Hidden**, and **Open & Visible**.
-  - Displays SSID, BSSID (MAC Address), Channel, RSSI with visual signal bar, and Security/Auth type (Open, WEP, WPA, WPA2, WPA3).
+  - Displays SSID, hardware manufacturer / OUI vendor, Channel, RSSI with visual signal bar, and Security/Auth type (Open, WEP, WPA, WPA2, WPA3).
   - Automatic detection and labeling of hidden networks (`[Hidden Network]`).
 
 - **Network Detail Inspector Modal**:
   - Interactive popup modal triggered by tapping any network item in the catalog.
-  - Comprehensive network telemetry: SSID, BSSID, Signal Quality (%) and RSSI (dBm), Channel and exact center frequency (e.g., Ch 6 $\rightarrow$ 2437 MHz), Auth Mode, and Hidden status.
+  - Comprehensive network telemetry: SSID, BSSID MAC address with OUI hardware vendor resolution (e.g. Apple, Cisco/Meraki, Ubiquiti, Espressif, TP-Link, Netgear, Intel, Aruba/HP, Google, Amazon), Signal Quality (%) and RSSI (dBm), Channel and exact center frequency (e.g., Ch 6 $\rightarrow$ 2437 MHz), Auth Mode, and Hidden status.
   - 8-sample rolling historical RSSI line chart (`lv_chart`) for live signal fluctuation analysis.
   - Quick-launch button to enter dedicated **Tracker Mode**.
 

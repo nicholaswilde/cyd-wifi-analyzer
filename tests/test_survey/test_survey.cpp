@@ -2,6 +2,7 @@
 #include <cstring>
 #include <ctime>
 #include "../mocks/mocks.cpp"
+#include "../../src/oui.cpp"
 #include "../../src/sd_card_manager.cpp"
 #include "../../src/survey_manager.cpp"
 #include "../../src/wifi_analyzer.cpp"

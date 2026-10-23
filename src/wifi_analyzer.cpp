@@ -229,6 +229,7 @@ bool WifiAnalyzer::update() {
         } else {
             memset(info.bssid, 0, 6);
         }
+        info.vendor = getOuiVendor(info);
 
         if (info.isHidden) {
             info.ssid = "[Hidden Network]";
@@ -284,6 +285,11 @@ void WifiAnalyzer::processScanResults() {
 
 void WifiAnalyzer::setScanResults(const std::vector<AccessPointInfo>& aps) {
     _accessPoints = aps;
+    for (auto& ap : _accessPoints) {
+        if (!ap.vendor || strcmp(ap.vendor, "Unknown Vendor") == 0) {
+            ap.vendor = getOuiVendor(ap);
+        }
+    }
     processScanResults();
 }
 
@@ -428,4 +434,20 @@ std::vector<size_t> filterAndSortAccessPoints(const std::vector<AccessPointInfo>
     });
 
     return indices;
+}
+
+const char* getOuiVendor(const AccessPointInfo& ap) {
+    if (ap.vendor && strcmp(ap.vendor, "Unknown Vendor") != 0) {
+        return ap.vendor;
+    }
+    if (ap.bssid[0] != 0 || ap.bssid[1] != 0 || ap.bssid[2] != 0) {
+        const char* v = getOuiVendor(ap.bssid);
+        if (strcmp(v, "Unknown Vendor") != 0) {
+            return v;
+        }
+    }
+    if (ap.bssidStr.length() >= 6) {
+        return getOuiVendor(ap.bssidStr.c_str());
+    }
+    return "Unknown Vendor";
 }

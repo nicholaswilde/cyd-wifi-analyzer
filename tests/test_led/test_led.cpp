@@ -3,6 +3,8 @@
 #include "../mocks/mocks.cpp"
 #include "led_manager.h"
 #include "../../src/led_manager.cpp"
+#include "oui.h"
+#include "../../src/oui.cpp"
 #include "wifi_analyzer.h"
 #include "../../src/wifi_analyzer.cpp"
 

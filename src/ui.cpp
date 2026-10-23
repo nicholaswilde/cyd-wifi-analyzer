@@ -543,21 +543,24 @@ static void showNetworkDetailModal(const AccessPointInfo& ap) {
     lv_obj_set_style_text_color(lbl_close_sym, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.text) : TO_LV_COLOR(p.subtext0)), LV_PART_MAIN);
     lv_obj_center(lbl_close_sym);
 
-    // 2. Info Row 1: BSSID & Frequency
+    // 2. Info Row 1: BSSID & Vendor
+    const char* vendor = getOuiVendor(ap);
     char infoRow1[64];
-    snprintf(infoRow1, sizeof(infoRow1), "BSSID: %s  |  %d MHz (Ch %d)",
+    snprintf(infoRow1, sizeof(infoRow1), "BSSID: %s (%s)",
              ap.bssidStr.c_str(),
-             channelToFrequency(ap.channel),
-             ap.channel);
+             vendor);
     lv_obj_t* lbl_row1 = lv_label_create(s_detail_modal);
     lv_label_set_text(lbl_row1, infoRow1);
     lv_obj_set_style_text_color(lbl_row1, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
     lv_obj_set_style_text_font(lbl_row1, &lv_font_montserrat_10, LV_PART_MAIN);
     lv_obj_align(lbl_row1, LV_ALIGN_TOP_LEFT, 2, 24);
 
-    // 3. Info Row 2: Security Type
+    // 3. Info Row 2: Channel, Frequency & Security
     char infoRow2[64];
-    snprintf(infoRow2, sizeof(infoRow2), "Security: %s", authModeToString(ap.authMode));
+    snprintf(infoRow2, sizeof(infoRow2), "Ch %d (%d MHz)  |  Security: %s",
+             ap.channel,
+             channelToFrequency(ap.channel),
+             authModeToString(ap.authMode));
     lv_obj_t* lbl_row2 = lv_label_create(s_detail_modal);
     lv_label_set_text(lbl_row2, infoRow2);
     lv_obj_set_style_text_color(lbl_row2, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
@@ -718,14 +721,25 @@ static void updateNetworksList() {
             displaySsid = "[Hidden]";
         }
 
+        const char* vendor = getOuiVendor(ap);
         char btnText[64];
-        snprintf(btnText, sizeof(btnText), "Ch%-2d  %-9.9s  %ddBm  %s",
-                 ap.channel,
-                 displaySsid.c_str(),
-                 (int)ap.rssi,
-                 shortAuth);
+        if (strcmp(vendor, "Unknown Vendor") != 0) {
+            snprintf(btnText, sizeof(btnText), "Ch%-2d  %-8.8s  %-7.7s  %ddBm  %s",
+                     ap.channel,
+                     displaySsid.c_str(),
+                     vendor,
+                     (int)ap.rssi,
+                     shortAuth);
+        } else {
+            snprintf(btnText, sizeof(btnText), "Ch%-2d  %-9.9s  %ddBm  %s",
+                     ap.channel,
+                     displaySsid.c_str(),
+                     (int)ap.rssi,
+                     shortAuth);
+        }
 
         lv_obj_t* btn = lv_list_add_btn(s_list_networks, LV_SYMBOL_WIFI, btnText);
+        lv_obj_set_style_text_font(btn, &lv_font_montserrat_10, LV_PART_MAIN);
         lv_obj_set_style_pad_left(btn, 6, LV_PART_MAIN);
         lv_obj_set_style_pad_right(btn, 6, LV_PART_MAIN);
         lv_obj_set_style_pad_top(btn, 5, LV_PART_MAIN);

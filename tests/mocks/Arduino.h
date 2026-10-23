@@ -6,6 +6,10 @@
 #include <iostream>
 #include <stdarg.h>
 
+#ifndef PROGMEM
+#define PROGMEM
+#endif
+
 // --- FreeRTOS Mocks ---
 #ifndef FREERTOS_MOCKS_H
 #define FREERTOS_MOCKS_H

@@ -1,9 +1,11 @@
 #include <unity.h>
 #include <cstring>
 #include "../mocks/mocks.cpp"
+#include "../../src/oui.cpp"
 #include "../../src/settings_manager.cpp"
 #include "../../src/catppuccin.cpp"
 #include "../../src/wifi_analyzer.cpp"
+#include "oui.h"
 #include "wifi_analyzer.h"
 #include "catppuccin.h"
 
@@ -454,6 +456,32 @@ void test_ap_filter_and_sort_empty(void) {
     TEST_ASSERT_TRUE(res3.empty());
 }
 
+void test_ap_vendor_identification(void) {
+    AccessPointInfo apUbiquiti;
+    apUbiquiti.bssid[0] = 0x00; apUbiquiti.bssid[1] = 0x15; apUbiquiti.bssid[2] = 0x6D;
+    apUbiquiti.bssid[3] = 0x01; apUbiquiti.bssid[4] = 0x02; apUbiquiti.bssid[5] = 0x03;
+    apUbiquiti.bssidStr = "00:15:6D:01:02:03";
+    TEST_ASSERT_EQUAL_STRING("Ubiquiti", getOuiVendor(apUbiquiti));
+
+    AccessPointInfo apUnknown;
+    apUnknown.bssidStr = "FE:ED:FA:CE:00:01";
+    TEST_ASSERT_EQUAL_STRING("Unknown Vendor", getOuiVendor(apUnknown));
+
+    WifiAnalyzer wa;
+    std::vector<AccessPointInfo> aps = {apUbiquiti, apUnknown};
+    wa.setScanResults(aps);
+
+    const auto& results = wa.getAccessPoints();
+    TEST_ASSERT_EQUAL_UINT32(2, results.size());
+    for (const auto& ap : results) {
+        if (ap.bssidStr == "00:15:6D:01:02:03") {
+            TEST_ASSERT_EQUAL_STRING("Ubiquiti", ap.vendor);
+        } else {
+            TEST_ASSERT_EQUAL_STRING("Unknown Vendor", ap.vendor);
+        }
+    }
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_match_bssid_prefix);
@@ -475,5 +503,6 @@ int main(void) {
     RUN_TEST(test_ap_filtering);
     RUN_TEST(test_ap_sorting);
     RUN_TEST(test_ap_filter_and_sort_empty);
+    RUN_TEST(test_ap_vendor_identification);
     return UNITY_END();
 }
