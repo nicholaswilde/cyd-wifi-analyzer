@@ -45,6 +45,9 @@ public:
     int getApFilterMode() const { return _apFilterMode; }
     void setApFilterMode(int mode);
 
+    bool getScanSurveyEnabled() const { return _scanSurvey; }
+    void setScanSurvey(bool enabled);
+
     void resetToDefaults();
 
 private:
@@ -58,6 +61,7 @@ private:
     int _ledBrightness;
     int _apSortMode;
     int _apFilterMode;
+    bool _scanSurvey;
 };
 
 extern SettingsManager settings;

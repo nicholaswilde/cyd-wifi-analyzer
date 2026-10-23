@@ -5,6 +5,8 @@
 #include "settings_manager.h"
 #include "led_manager.h"
 #include "display.h"
+#include "sd_card_manager.h"
+#include "survey_manager.h"
 #include <cstdio>
 #include <cstring>
 #include <vector>
@@ -63,6 +65,8 @@ static lv_obj_t* s_switch_passive = nullptr;
 static lv_obj_t* s_dropdown_rotation = nullptr;
 static lv_obj_t* s_switch_led = nullptr;
 static lv_obj_t* s_slider_led_bright = nullptr;
+static lv_obj_t* s_switch_survey = nullptr;
+static lv_obj_t* s_btn_export_survey = nullptr;
 static lv_obj_t* s_btn_reset = nullptr;
 static lv_obj_t* s_lbl_info = nullptr;
 
@@ -74,6 +78,7 @@ static lv_obj_t* s_lbl_passive = nullptr;
 static lv_obj_t* s_lbl_rotation = nullptr;
 static lv_obj_t* s_lbl_led = nullptr;
 static lv_obj_t* s_lbl_led_bright = nullptr;
+static lv_obj_t* s_lbl_survey = nullptr;
 
 static uint16_t scanIntervalToDropdownIdx(uint32_t ms) {
     if (ms <= 1000) return 0;
@@ -191,6 +196,31 @@ static void on_led_brightness_changed(lv_event_t* e) {
     led.setBrightness(val);
 }
 
+static void on_survey_toggle_changed(lv_event_t* e) {
+    lv_obj_t* sw = lv_event_get_target(e);
+    bool en = lv_obj_has_state(sw, LV_STATE_CHECKED);
+    settings.setScanSurvey(en);
+    if (en) {
+        showUIStatusMessage("Scan survey enabled");
+    } else {
+        showUIStatusMessage("Scan survey disabled");
+    }
+}
+
+static void on_export_survey_clicked(lv_event_t* e) {
+    const auto& aps = wifiAnalyzer.getAccessPoints();
+    if (aps.empty()) {
+        showUIStatusMessage("No APs to export!");
+        return;
+    }
+    bool ok = SurveyManager::exportScanSnapshot(aps);
+    if (ok) {
+        showUIStatusMessage("Survey exported to SD!");
+    } else {
+        showUIStatusMessage("Export failed!");
+    }
+}
+
 static void on_reset_settings_clicked(lv_event_t* e) {
     settings.resetToDefaults();
 
@@ -251,6 +281,17 @@ static void on_reset_settings_clicked(lv_event_t* e) {
     }
     if (s_dropdown_ap_filter) {
         lv_dropdown_set_selected(s_dropdown_ap_filter, DEFAULT_AP_FILTER_MODE);
+    }
+    if (s_switch_survey) {
+        if (SdCardManager::isCardPresent()) {
+            if (settings.getScanSurveyEnabled()) {
+                lv_obj_add_state(s_switch_survey, LV_STATE_CHECKED);
+            } else {
+                lv_obj_clear_state(s_switch_survey, LV_STATE_CHECKED);
+            }
+        } else {
+            lv_obj_add_state(s_switch_survey, LV_STATE_DISABLED);
+        }
     }
     refreshThemeUI();
 }
@@ -977,7 +1018,7 @@ static void styleSettingsControls(const Catppuccin::Palette& p, int flavor) {
         }
     }
 
-    lv_obj_t* switches[] = {s_switch_auto_bright, s_switch_passive, s_switch_led};
+    lv_obj_t* switches[] = {s_switch_auto_bright, s_switch_passive, s_switch_led, s_switch_survey};
     for (lv_obj_t* sw : switches) {
         if (sw) {
             lv_obj_set_style_bg_color(sw, track_bg, LV_PART_MAIN);
@@ -988,10 +1029,13 @@ static void styleSettingsControls(const Catppuccin::Palette& p, int flavor) {
         }
     }
 
-    if (s_btn_reset) {
-        lv_obj_set_style_bg_color(s_btn_reset, track_bg, LV_PART_MAIN);
-        lv_obj_set_style_border_color(s_btn_reset, track_border, LV_PART_MAIN);
-        lv_obj_set_style_border_width(s_btn_reset, 1, LV_PART_MAIN);
+    lv_obj_t* buttons[] = {s_btn_export_survey, s_btn_reset};
+    for (lv_obj_t* b : buttons) {
+        if (b) {
+            lv_obj_set_style_bg_color(b, track_bg, LV_PART_MAIN);
+            lv_obj_set_style_border_color(b, track_border, LV_PART_MAIN);
+            lv_obj_set_style_border_width(b, 1, LV_PART_MAIN);
+        }
     }
 }
 
@@ -1212,9 +1256,42 @@ void initUI() {
         lv_obj_add_state(s_slider_led_bright, LV_STATE_DISABLED);
     }
 
+    // Scan Survey toggle
+    s_lbl_survey = lv_label_create(s_tab_settings);
+    lv_label_set_text(s_lbl_survey, "Scan Survey:");
+    lv_obj_set_style_text_color(s_lbl_survey, TO_LV_COLOR(p.text), LV_PART_MAIN);
+    lv_obj_align(s_lbl_survey, LV_ALIGN_TOP_LEFT, 10, 334);
+
+    s_switch_survey = lv_switch_create(s_tab_settings);
+    if (SdCardManager::isCardPresent()) {
+        if (settings.getScanSurveyEnabled()) {
+            lv_obj_add_state(s_switch_survey, LV_STATE_CHECKED);
+        }
+        lv_obj_add_event_cb(s_switch_survey, on_survey_toggle_changed, LV_EVENT_VALUE_CHANGED, nullptr);
+    } else {
+        lv_obj_add_state(s_switch_survey, LV_STATE_DISABLED);
+    }
+    lv_obj_align(s_switch_survey, LV_ALIGN_TOP_LEFT, 132, 330);
+
+    // Export Scan to SD button
+    s_btn_export_survey = lv_btn_create(s_tab_settings);
+    lv_obj_set_size(s_btn_export_survey, 265, 34);
+    lv_obj_align(s_btn_export_survey, LV_ALIGN_TOP_LEFT, 10, 370);
+    lv_obj_set_style_bg_color(s_btn_export_survey, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
+    if (SdCardManager::isCardPresent()) {
+        lv_obj_add_event_cb(s_btn_export_survey, on_export_survey_clicked, LV_EVENT_CLICKED, nullptr);
+    } else {
+        lv_obj_add_state(s_btn_export_survey, LV_STATE_DISABLED);
+    }
+
+    lv_obj_t* lbl_export_text = lv_label_create(s_btn_export_survey);
+    lv_label_set_text(lbl_export_text, LV_SYMBOL_SAVE " Export Scan to SD");
+    lv_obj_set_style_text_color(lbl_export_text, TO_LV_COLOR(p.text), LV_PART_MAIN);
+    lv_obj_center(lbl_export_text);
+
     s_btn_reset = lv_btn_create(s_tab_settings);
     lv_obj_set_size(s_btn_reset, 265, 34);
-    lv_obj_align(s_btn_reset, LV_ALIGN_TOP_LEFT, 10, 330);
+    lv_obj_align(s_btn_reset, LV_ALIGN_TOP_LEFT, 10, 414);
     lv_obj_set_style_bg_color(s_btn_reset, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
     lv_obj_add_event_cb(s_btn_reset, on_reset_settings_clicked, LV_EVENT_CLICKED, nullptr);
 
@@ -1226,7 +1303,7 @@ void initUI() {
     s_lbl_info = lv_label_create(s_tab_settings);
     lv_label_set_text(s_lbl_info, "ESP32 CYD Wi-Fi Analyzer\nEngine: LVGL v8 + Catppuccin RGB565");
     lv_obj_set_style_text_color(s_lbl_info, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
-    lv_obj_align(s_lbl_info, LV_ALIGN_TOP_LEFT, 10, 376);
+    lv_obj_align(s_lbl_info, LV_ALIGN_TOP_LEFT, 10, 460);
 
     styleSettingsControls(p, flavor);
 }
@@ -1441,6 +1518,7 @@ void refreshThemeUI() {
     if (s_lbl_rotation) lv_obj_set_style_text_color(s_lbl_rotation, TO_LV_COLOR(p.text), LV_PART_MAIN);
     if (s_lbl_led) lv_obj_set_style_text_color(s_lbl_led, TO_LV_COLOR(p.text), LV_PART_MAIN);
     if (s_lbl_led_bright) lv_obj_set_style_text_color(s_lbl_led_bright, TO_LV_COLOR(p.text), LV_PART_MAIN);
+    if (s_lbl_survey) lv_obj_set_style_text_color(s_lbl_survey, TO_LV_COLOR(p.text), LV_PART_MAIN);
     if (s_lbl_info) lv_obj_set_style_text_color(s_lbl_info, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
 
     styleSettingsControls(p, flavor);

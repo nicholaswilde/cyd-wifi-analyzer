@@ -8,6 +8,7 @@
 #include "led_manager.h"
 #include "screenshot_manager.h"
 #include "sd_card_manager.h"
+#include "survey_manager.h"
 #include "button_manager.h"
 #include "ui.h"
 
@@ -34,6 +35,9 @@ void setup() {
 
     // Initialize physical BOOT button (GPIO 0)
     buttonManager.begin();
+
+    // Initialize MicroSD Card Manager
+    SdCardManager::begin();
 
     // Initialize Display and Touch (must run before backlight so tft.init does not clobber LEDC PWM pin)
     initDisplayAndTouch();
@@ -93,6 +97,9 @@ void loop() {
     // Check Wi-Fi scan status and update UI upon scan completion
     if (wifiAnalyzer.update()) {
         updateUI();
+        if (settings.getScanSurveyEnabled() && SdCardManager::isCardPresent()) {
+            SurveyManager::appendScanToSurvey(wifiAnalyzer.getAccessPoints());
+        }
     }
 
     // Periodically update backlight from ambient light sensor (LDR) if auto-brightness is enabled

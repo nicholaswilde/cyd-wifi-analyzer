@@ -60,6 +60,12 @@ An interactive, touch-screen-enabled 2.4 GHz spectrum analyzer, access point cat
     - **Tracker mode**: Green when near, Yellow when moderate, Red when distant.
   - Settings controls to toggle the LED on/off and adjust LED brightness with gamma 2.2 scaling.
 
+- **MicroSD Wi-Fi Scan Survey & CSV Export**:
+  - Automatically appends real-time scan survey telemetry to `/scans/wifi_survey.csv` when Scan Survey mode is enabled.
+  - Snapshot export button in Settings tab to export current AP scan snapshot to `/scans/wifi_scan_YYYYMMDD_HHMMSS.csv` (or millis fallback).
+  - Standard RFC 4180 CSV schema with escaped SSIDs (`Timestamp,SSID,BSSID,RSSI,Channel,AuthMode,Hidden`).
+  - Automatically disables survey controls and warns gracefully if no microSD card is detected.
+
 - **MicroSD Card Screenshot Capture & Physical BOOT Button**:
   - **Long Press ($\ge 2$s)**: Captures the active LVGL display buffer directly to a 24-bit BMP image on an inserted FAT32 microSD card (e.g. `/screenshot_YYYYMMDD_HHMMSS.bmp`) using zero large-memory tile streaming to prevent heap fragmentation.
   - **Quick Press ($< 1$s)**: Triggers an immediate Wi-Fi spectrum rescan.
@@ -71,7 +77,7 @@ An interactive, touch-screen-enabled 2.4 GHz spectrum analyzer, access point cat
 
 - **Persistent Configuration via NVS (SettingsManager)**:
   - Backed by ESP32 `Preferences` non-volatile storage.
-  - Remembers theme flavor, backlight brightness, auto-dimming toggle, scan interval, passive/active scan mode, screen orientation, and status LED settings across reboots.
+  - Remembers theme flavor, backlight brightness, auto-dimming toggle, scan interval, passive/active scan mode, screen orientation, status LED, and scan survey preferences across reboots.
   - One-touch factory defaults restoration button.
 
 ---

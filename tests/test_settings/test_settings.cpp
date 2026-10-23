@@ -26,6 +26,7 @@ void test_settings_initial_defaults(void) {
     TEST_ASSERT_EQUAL(DEFAULT_LED_BRIGHTNESS, sm.getLedBrightness());
     TEST_ASSERT_EQUAL(DEFAULT_AP_SORT_MODE, sm.getApSortMode());
     TEST_ASSERT_EQUAL(DEFAULT_AP_FILTER_MODE, sm.getApFilterMode());
+    TEST_ASSERT_FALSE(sm.getScanSurveyEnabled());
 }
 
 void test_settings_setters_and_persistence(void) {
@@ -93,6 +94,9 @@ void test_settings_setters_and_persistence(void) {
     sm.setApFilterMode(8);
     TEST_ASSERT_EQUAL(3, sm.getApFilterMode());
 
+    sm.setScanSurvey(true);
+    TEST_ASSERT_TRUE(sm.getScanSurveyEnabled());
+
     // Simulate reboot: new instance calling begin()
     SettingsManager rebootedSm;
     rebootedSm.begin();
@@ -107,6 +111,7 @@ void test_settings_setters_and_persistence(void) {
     TEST_ASSERT_EQUAL(255, rebootedSm.getLedBrightness());
     TEST_ASSERT_EQUAL(2, rebootedSm.getApSortMode());
     TEST_ASSERT_EQUAL(3, rebootedSm.getApFilterMode());
+    TEST_ASSERT_TRUE(rebootedSm.getScanSurveyEnabled());
 }
 
 void test_settings_reset_to_defaults(void) {
@@ -118,6 +123,7 @@ void test_settings_reset_to_defaults(void) {
     sm.setLedBrightness(50);
     sm.setApSortMode(1);
     sm.setApFilterMode(2);
+    sm.setScanSurvey(true);
 
     sm.resetToDefaults();
 
@@ -128,6 +134,7 @@ void test_settings_reset_to_defaults(void) {
     TEST_ASSERT_EQUAL(DEFAULT_LED_BRIGHTNESS, sm.getLedBrightness());
     TEST_ASSERT_EQUAL(DEFAULT_AP_SORT_MODE, sm.getApSortMode());
     TEST_ASSERT_EQUAL(DEFAULT_AP_FILTER_MODE, sm.getApFilterMode());
+    TEST_ASSERT_FALSE(sm.getScanSurveyEnabled());
 
     // Verify NVS cleared
     SettingsManager rebootedSm;
@@ -138,6 +145,7 @@ void test_settings_reset_to_defaults(void) {
     TEST_ASSERT_EQUAL(DEFAULT_LED_BRIGHTNESS, rebootedSm.getLedBrightness());
     TEST_ASSERT_EQUAL(DEFAULT_AP_SORT_MODE, rebootedSm.getApSortMode());
     TEST_ASSERT_EQUAL(DEFAULT_AP_FILTER_MODE, rebootedSm.getApFilterMode());
+    TEST_ASSERT_FALSE(rebootedSm.getScanSurveyEnabled());
 }
 
 int main(void) {

@@ -17,7 +17,8 @@ SettingsManager::SettingsManager()
       _ledEnabled(DEFAULT_LED_ENABLED),
       _ledBrightness(DEFAULT_LED_BRIGHTNESS),
       _apSortMode(DEFAULT_AP_SORT_MODE),
-      _apFilterMode(DEFAULT_AP_FILTER_MODE) {}
+      _apFilterMode(DEFAULT_AP_FILTER_MODE),
+      _scanSurvey(DEFAULT_SCAN_SURVEY) {}
 
 void SettingsManager::begin() {
     Preferences prefs;
@@ -32,6 +33,7 @@ void SettingsManager::begin() {
         _ledBrightness = prefs.getInt("led_bright", DEFAULT_LED_BRIGHTNESS);
         _apSortMode = prefs.getInt("ap_sort", DEFAULT_AP_SORT_MODE);
         _apFilterMode = prefs.getInt("ap_filter", DEFAULT_AP_FILTER_MODE);
+        _scanSurvey = prefs.getBool("scan_survey", DEFAULT_SCAN_SURVEY);
         prefs.end();
     }
 }
@@ -135,6 +137,15 @@ void SettingsManager::setApFilterMode(int mode) {
     }
 }
 
+void SettingsManager::setScanSurvey(bool enabled) {
+    _scanSurvey = enabled;
+    Preferences prefs;
+    if (prefs.begin("wifi_analyzer", false)) {
+        prefs.putBool("scan_survey", _scanSurvey);
+        prefs.end();
+    }
+}
+
 void SettingsManager::resetToDefaults() {
     _themeFlavor = DEFAULT_THEME_FLAVOR;
     _brightness = DEFAULT_BRIGHTNESS;
@@ -146,6 +157,7 @@ void SettingsManager::resetToDefaults() {
     _ledBrightness = DEFAULT_LED_BRIGHTNESS;
     _apSortMode = DEFAULT_AP_SORT_MODE;
     _apFilterMode = DEFAULT_AP_FILTER_MODE;
+    _scanSurvey = DEFAULT_SCAN_SURVEY;
 
     Preferences prefs;
     if (prefs.begin("wifi_analyzer", false)) {

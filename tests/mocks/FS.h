@@ -138,6 +138,14 @@ public:
     bool remove(const String& path) {
         return remove(path.c_str());
     }
+
+    bool mkdir(const char* path) {
+        return true;
+    }
+
+    bool mkdir(const String& path) {
+        return true;
+    }
 };
 
 #endif // FS_MOCK_H
