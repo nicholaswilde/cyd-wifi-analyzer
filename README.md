@@ -44,8 +44,8 @@ An interactive, touch-screen-enabled 2.4 GHz spectrum analyzer, access point cat
 
 - **Channel Interference Matrix & Rating Table (Channels Tab)**:
   - Full 14-channel matrix displaying AP density, peak dBm, and cumulative co-channel/adjacent channel interference noise scores.
-  - Evaluates channel health into ratings: **Clean** (zero noise), **Good** ($\le 2$ APs), **Fair** (3–5 APs), or **Congested** ($> 5$ APs).
-  - Real-time ranking of recommended clean channels in the 1–11 regulatory range.
+  - Evaluates channel health into ratings: **Clean** (zero noise), **Good** ($\le 2$ APs), **Fair** (3–5 APs), **Congested** ($> 5$ APs), or **N/A** (outside configured regulatory domain).
+  - Real-time ranking of recommended clean channels adapted to the configured regulatory domain (**US**: 1–11, **EU**: 1–13, **JP**: 1–14).
 
 - **Catppuccin RGB565 Theming**:
   - Full runtime switching across 4 Catppuccin flavors: **Mocha**, **Macchiato**, **Frappé**, and **Latte**.
@@ -224,9 +224,11 @@ The **Settings Tab** on the device provides touch controls for all runtime param
 | **Auto Bright** | Toggle Switch | `ON` / `OFF` | `OFF` | Enables dynamic ambient light backlight adaptation via the onboard LDR sensor. |
 | **Scan Interval** | Dropdown | `1s`, `2s`, `3s`, `5s` | `3s` | Sets the idle delay between full 14-channel spectrum scan sweeps. |
 | **Passive Scan** | Toggle Switch | `ON` / `OFF` | `OFF` | Toggles between active probe scanning and passive listening. |
+| **Reg. Domain** | Dropdown | `US (Ch 1-11)`, `EU (Ch 1-13)`, `JP (Ch 1-14)` | `US` | Configures regional regulatory domain; channels outside domain are marked N/A and excluded from recommendations. |
 | **Orientation** | Dropdown | `Landscape (0°)`, `Landscape (180°)` | `Landscape (0°)` | Rotates screen orientation by 180° for upside-down mounting. |
 | **Status LED** | Toggle Switch | `ON` / `OFF` | `ON` | Enables or disables physical RGB status LED indications. |
 | **LED Brightness** | Slider | `10` to `255` | `255` | Sets the maximum brightness of the RGB status LED. |
+| **Scan Survey** | Toggle Switch | `ON` / `OFF` | `OFF` | Logs scan sweeps to timestamped CSV files on an inserted FAT32 microSD card. |
 | **Reset Defaults** | Push Button | Tap to execute | — | Clears NVS preferences and restores safe factory configuration. |
 
 ---

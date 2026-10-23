@@ -27,6 +27,7 @@ void test_settings_initial_defaults(void) {
     TEST_ASSERT_EQUAL(DEFAULT_AP_SORT_MODE, sm.getApSortMode());
     TEST_ASSERT_EQUAL(DEFAULT_AP_FILTER_MODE, sm.getApFilterMode());
     TEST_ASSERT_FALSE(sm.getScanSurveyEnabled());
+    TEST_ASSERT_EQUAL(DEFAULT_REG_DOMAIN, sm.getRegDomain());
 }
 
 void test_settings_setters_and_persistence(void) {
@@ -97,6 +98,14 @@ void test_settings_setters_and_persistence(void) {
     sm.setScanSurvey(true);
     TEST_ASSERT_TRUE(sm.getScanSurveyEnabled());
 
+    sm.setRegDomain(REG_DOMAIN_EU);
+    TEST_ASSERT_EQUAL(REG_DOMAIN_EU, sm.getRegDomain());
+    // Regulatory domain clamping: 0..REG_DOMAIN_COUNT-1
+    sm.setRegDomain(-3);
+    TEST_ASSERT_EQUAL(REG_DOMAIN_US, sm.getRegDomain());
+    sm.setRegDomain(10);
+    TEST_ASSERT_EQUAL(REG_DOMAIN_JP, sm.getRegDomain());
+
     // Simulate reboot: new instance calling begin()
     SettingsManager rebootedSm;
     rebootedSm.begin();
@@ -112,6 +121,7 @@ void test_settings_setters_and_persistence(void) {
     TEST_ASSERT_EQUAL(2, rebootedSm.getApSortMode());
     TEST_ASSERT_EQUAL(3, rebootedSm.getApFilterMode());
     TEST_ASSERT_TRUE(rebootedSm.getScanSurveyEnabled());
+    TEST_ASSERT_EQUAL(REG_DOMAIN_JP, rebootedSm.getRegDomain());
 }
 
 void test_settings_reset_to_defaults(void) {
@@ -124,6 +134,7 @@ void test_settings_reset_to_defaults(void) {
     sm.setApSortMode(1);
     sm.setApFilterMode(2);
     sm.setScanSurvey(true);
+    sm.setRegDomain(REG_DOMAIN_EU);
 
     sm.resetToDefaults();
 
@@ -135,6 +146,7 @@ void test_settings_reset_to_defaults(void) {
     TEST_ASSERT_EQUAL(DEFAULT_AP_SORT_MODE, sm.getApSortMode());
     TEST_ASSERT_EQUAL(DEFAULT_AP_FILTER_MODE, sm.getApFilterMode());
     TEST_ASSERT_FALSE(sm.getScanSurveyEnabled());
+    TEST_ASSERT_EQUAL(DEFAULT_REG_DOMAIN, sm.getRegDomain());
 
     // Verify NVS cleared
     SettingsManager rebootedSm;
@@ -146,6 +158,7 @@ void test_settings_reset_to_defaults(void) {
     TEST_ASSERT_EQUAL(DEFAULT_AP_SORT_MODE, rebootedSm.getApSortMode());
     TEST_ASSERT_EQUAL(DEFAULT_AP_FILTER_MODE, rebootedSm.getApFilterMode());
     TEST_ASSERT_FALSE(rebootedSm.getScanSurveyEnabled());
+    TEST_ASSERT_EQUAL(DEFAULT_REG_DOMAIN, rebootedSm.getRegDomain());
 }
 
 int main(void) {

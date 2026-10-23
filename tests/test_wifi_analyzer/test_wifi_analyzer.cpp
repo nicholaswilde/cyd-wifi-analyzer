@@ -482,6 +482,112 @@ void test_ap_vendor_identification(void) {
     }
 }
 
+void test_regulatory_domain_helpers(void) {
+    TEST_ASSERT_EQUAL_UINT8(11, regDomainMaxChannel(REG_DOMAIN_US));
+    TEST_ASSERT_EQUAL_UINT8(13, regDomainMaxChannel(REG_DOMAIN_EU));
+    TEST_ASSERT_EQUAL_UINT8(14, regDomainMaxChannel(REG_DOMAIN_JP));
+    TEST_ASSERT_EQUAL_UINT8(11, regDomainMaxChannel(99)); // Default fallback
+
+    TEST_ASSERT_EQUAL_STRING("US", regDomainToString(REG_DOMAIN_US));
+    TEST_ASSERT_EQUAL_STRING("EU", regDomainToString(REG_DOMAIN_EU));
+    TEST_ASSERT_EQUAL_STRING("JP", regDomainToString(REG_DOMAIN_JP));
+    TEST_ASSERT_EQUAL_STRING("US", regDomainToString(99)); // Default fallback
+}
+
+void test_domain_specific_channel_ratings(void) {
+    ChannelInfo chClean;
+    chClean.channel = 1;
+    chClean.apCount = 0;
+    chClean.noiseScore = 0;
+    TEST_ASSERT_EQUAL_STRING("Clean", channelRating(chClean, 11));
+
+    ChannelInfo chGood;
+    chGood.channel = 6;
+    chGood.apCount = 2;
+    chGood.noiseScore = 500;
+    TEST_ASSERT_EQUAL_STRING("Good", channelRating(chGood, 11));
+
+    ChannelInfo chFair;
+    chFair.channel = 11;
+    chFair.apCount = 4;
+    chFair.noiseScore = 1500;
+    TEST_ASSERT_EQUAL_STRING("Fair", channelRating(chFair, 11));
+
+    ChannelInfo chCongested;
+    chCongested.channel = 1;
+    chCongested.apCount = 8;
+    chCongested.noiseScore = 4000;
+    TEST_ASSERT_EQUAL_STRING("Congested", channelRating(chCongested, 11));
+
+    // Channels beyond configured maxChannel must report "N/A"
+    ChannelInfo ch12;
+    ch12.channel = 12;
+    ch12.apCount = 0;
+    ch12.noiseScore = 0;
+    TEST_ASSERT_EQUAL_STRING("N/A", channelRating(ch12, 11)); // Outside US
+    TEST_ASSERT_EQUAL_STRING("Clean", channelRating(ch12, 13)); // Valid in EU
+
+    ChannelInfo ch14;
+    ch14.channel = 14;
+    ch14.apCount = 0;
+    ch14.noiseScore = 0;
+    TEST_ASSERT_EQUAL_STRING("N/A", channelRating(ch14, 11)); // Outside US
+    TEST_ASSERT_EQUAL_STRING("N/A", channelRating(ch14, 13)); // Outside EU
+    TEST_ASSERT_EQUAL_STRING("Clean", channelRating(ch14, 14)); // Valid in JP
+}
+
+void test_domain_specific_channel_recommendations(void) {
+    // Fill channels 1-11 with APs so noise is high on 1-11
+    std::vector<AccessPointInfo> aps;
+    for (uint8_t c = 1; c <= 11; c++) {
+        AccessPointInfo ap;
+        ap.channel = c;
+        ap.rssi = -50;
+        ap.bssidStr = "00:11:22:33:00:0" + std::to_string(c);
+        ap.bssid[0] = 0x00; ap.bssid[1] = 0x11; ap.bssid[2] = 0x22;
+        ap.bssid[3] = 0x33; ap.bssid[4] = 0x00; ap.bssid[5] = c;
+        aps.push_back(ap);
+    }
+    // Leave channels 12, 13, 14 completely empty (noiseScore = 0)
+
+    WifiAnalyzer wa;
+    wa.setScanResults(aps);
+
+    // 1. Default / US domain: recommended channels must be <= 11
+    wa.setRegDomain(REG_DOMAIN_US);
+    const auto& bestUs = wa.getBestChannels();
+    TEST_ASSERT_FALSE(bestUs.empty());
+    for (uint8_t ch : bestUs) {
+        TEST_ASSERT_TRUE(ch >= 1 && ch <= 11);
+        TEST_ASSERT_NOT_EQUAL(12, ch);
+        TEST_ASSERT_NOT_EQUAL(13, ch);
+        TEST_ASSERT_NOT_EQUAL(14, ch);
+    }
+
+    // 2. EU domain: channels 12 and 13 are allowed and have 0 noise
+    wa.setRegDomain(REG_DOMAIN_EU);
+    const auto& bestEu = wa.getBestChannels();
+    TEST_ASSERT_FALSE(bestEu.empty());
+    bool containsCh13 = false;
+    for (uint8_t ch : bestEu) {
+        TEST_ASSERT_TRUE(ch >= 1 && ch <= 13);
+        TEST_ASSERT_NOT_EQUAL(14, ch); // Channel 14 not allowed in EU
+        if (ch == 13) containsCh13 = true;
+    }
+    TEST_ASSERT_TRUE(containsCh13);
+
+    // 3. JP domain: channel 14 is allowed and has 0 noise
+    wa.setRegDomain(REG_DOMAIN_JP);
+    const auto& bestJp = wa.getBestChannels();
+    TEST_ASSERT_FALSE(bestJp.empty());
+    bool containsCh14 = false;
+    for (uint8_t ch : bestJp) {
+        TEST_ASSERT_TRUE(ch >= 1 && ch <= 14);
+        if (ch == 14) containsCh14 = true;
+    }
+    TEST_ASSERT_TRUE(containsCh14);
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_match_bssid_prefix);
@@ -504,5 +610,8 @@ int main(void) {
     RUN_TEST(test_ap_sorting);
     RUN_TEST(test_ap_filter_and_sort_empty);
     RUN_TEST(test_ap_vendor_identification);
+    RUN_TEST(test_regulatory_domain_helpers);
+    RUN_TEST(test_domain_specific_channel_ratings);
+    RUN_TEST(test_domain_specific_channel_recommendations);
     return UNITY_END();
 }

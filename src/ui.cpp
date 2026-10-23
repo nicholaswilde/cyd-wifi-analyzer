@@ -66,6 +66,7 @@ static lv_obj_t* s_dropdown_rotation = nullptr;
 static lv_obj_t* s_switch_led = nullptr;
 static lv_obj_t* s_slider_led_bright = nullptr;
 static lv_obj_t* s_switch_survey = nullptr;
+static lv_obj_t* s_dropdown_reg_domain = nullptr;
 static lv_obj_t* s_btn_export_survey = nullptr;
 static lv_obj_t* s_btn_reset = nullptr;
 static lv_obj_t* s_lbl_info = nullptr;
@@ -79,6 +80,7 @@ static lv_obj_t* s_lbl_rotation = nullptr;
 static lv_obj_t* s_lbl_led = nullptr;
 static lv_obj_t* s_lbl_led_bright = nullptr;
 static lv_obj_t* s_lbl_survey = nullptr;
+static lv_obj_t* s_lbl_reg_domain = nullptr;
 
 static uint16_t scanIntervalToDropdownIdx(uint32_t ms) {
     if (ms <= 1000) return 0;
@@ -162,6 +164,14 @@ static void on_passive_scan_changed(lv_event_t* e) {
     lv_obj_t* sw = lv_event_get_target(e);
     bool state = lv_obj_has_state(sw, LV_STATE_CHECKED);
     settings.setPassiveScan(state);
+}
+
+static void on_reg_domain_changed(lv_event_t* e) {
+    lv_obj_t* dropdown = lv_event_get_target(e);
+    uint16_t idx = lv_dropdown_get_selected(dropdown);
+    settings.setRegDomain((int)idx);
+    wifiAnalyzer.setRegDomain((uint8_t)settings.getRegDomain());
+    updateUI();
 }
 
 static void on_rotation_changed(lv_event_t* e) {
@@ -258,6 +268,10 @@ static void on_reset_settings_clicked(lv_event_t* e) {
     if (s_dropdown_rotation) {
         lv_dropdown_set_selected(s_dropdown_rotation, orientationToDropdownIdx(settings.getScreenOrientation()));
         tft.setRotation(settings.getScreenOrientation());
+    }
+    wifiAnalyzer.setRegDomain((uint8_t)settings.getRegDomain());
+    if (s_dropdown_reg_domain) {
+        lv_dropdown_set_selected(s_dropdown_reg_domain, settings.getRegDomain());
     }
     led.setEnabled(settings.getLedEnabled());
     led.setBrightness(settings.getLedBrightness());
@@ -809,6 +823,9 @@ static void on_channels_table_draw_cell(lv_event_t* e) {
                         dsc->label_dsc->color = (flavor == CATPPUCCIN_LATTE) ? TO_LV_COLOR(p.peach) : TO_LV_COLOR(p.yellow);
                     } else if (strcmp(val, "Congested") == 0) {
                         dsc->label_dsc->color = TO_LV_COLOR(p.red);
+                    } else if (strcmp(val, "N/A") == 0) {
+                        // Outside configured regulatory domain
+                        dsc->label_dsc->color = TO_LV_COLOR(p.overlay0);
                     }
                 }
             } else {
@@ -1011,7 +1028,7 @@ static void styleSettingsControls(const Catppuccin::Palette& p, int flavor) {
     lv_color_t active_bg = TO_LV_COLOR(p.blue);
     lv_color_t knob_bg = (flavor == CATPPUCCIN_LATTE) ? TO_LV_COLOR(p.base) : TO_LV_COLOR(p.text);
 
-    lv_obj_t* dropdowns[] = {s_dropdown_theme, s_dropdown_interval, s_dropdown_rotation, s_dropdown_ap_sort, s_dropdown_ap_filter};
+    lv_obj_t* dropdowns[] = {s_dropdown_theme, s_dropdown_interval, s_dropdown_reg_domain, s_dropdown_rotation, s_dropdown_ap_sort, s_dropdown_ap_filter};
     for (lv_obj_t* d : dropdowns) {
         if (d) {
             lv_obj_set_style_bg_color(d, TO_LV_COLOR(p.mantle), LV_PART_MAIN);
@@ -1231,40 +1248,53 @@ void initUI() {
     lv_obj_align(s_switch_passive, LV_ALIGN_TOP_LEFT, 132, 164);
     lv_obj_add_event_cb(s_switch_passive, on_passive_scan_changed, LV_EVENT_VALUE_CHANGED, nullptr);
 
+    s_lbl_reg_domain = lv_label_create(s_tab_settings);
+    lv_label_set_text(s_lbl_reg_domain, "Reg. Domain:");
+    lv_obj_set_style_text_color(s_lbl_reg_domain, TO_LV_COLOR(p.text), LV_PART_MAIN);
+    lv_obj_align(s_lbl_reg_domain, LV_ALIGN_TOP_LEFT, 10, 210);
+
+    // Order must match REG_DOMAIN_US / REG_DOMAIN_EU / REG_DOMAIN_JP indices
+    s_dropdown_reg_domain = lv_dropdown_create(s_tab_settings);
+    lv_dropdown_set_options(s_dropdown_reg_domain, "US (Ch 1-11)\nEU (Ch 1-13)\nJP (Ch 1-14)");
+    lv_dropdown_set_selected(s_dropdown_reg_domain, settings.getRegDomain());
+    lv_obj_set_size(s_dropdown_reg_domain, 142, LV_SIZE_CONTENT);
+    lv_obj_align(s_dropdown_reg_domain, LV_ALIGN_TOP_LEFT, 132, 204);
+    lv_obj_add_event_cb(s_dropdown_reg_domain, on_reg_domain_changed, LV_EVENT_VALUE_CHANGED, nullptr);
+
     s_lbl_rotation = lv_label_create(s_tab_settings);
     lv_label_set_text(s_lbl_rotation, "Orientation:");
     lv_obj_set_style_text_color(s_lbl_rotation, TO_LV_COLOR(p.text), LV_PART_MAIN);
-    lv_obj_align(s_lbl_rotation, LV_ALIGN_TOP_LEFT, 10, 210);
+    lv_obj_align(s_lbl_rotation, LV_ALIGN_TOP_LEFT, 10, 252);
 
     s_dropdown_rotation = lv_dropdown_create(s_tab_settings);
     lv_dropdown_set_options(s_dropdown_rotation, "Landscape (0\xC2\xB0)\nLandscape (180\xC2\xB0)");
     lv_dropdown_set_selected(s_dropdown_rotation, orientationToDropdownIdx(settings.getScreenOrientation()));
     lv_obj_set_size(s_dropdown_rotation, 142, LV_SIZE_CONTENT);
-    lv_obj_align(s_dropdown_rotation, LV_ALIGN_TOP_LEFT, 132, 204);
+    lv_obj_align(s_dropdown_rotation, LV_ALIGN_TOP_LEFT, 132, 246);
     lv_obj_add_event_cb(s_dropdown_rotation, on_rotation_changed, LV_EVENT_VALUE_CHANGED, nullptr);
 
     s_lbl_led = lv_label_create(s_tab_settings);
     lv_label_set_text(s_lbl_led, "Status LED:");
     lv_obj_set_style_text_color(s_lbl_led, TO_LV_COLOR(p.text), LV_PART_MAIN);
-    lv_obj_align(s_lbl_led, LV_ALIGN_TOP_LEFT, 10, 250);
+    lv_obj_align(s_lbl_led, LV_ALIGN_TOP_LEFT, 10, 292);
 
     s_switch_led = lv_switch_create(s_tab_settings);
     if (settings.getLedEnabled()) {
         lv_obj_add_state(s_switch_led, LV_STATE_CHECKED);
     }
-    lv_obj_align(s_switch_led, LV_ALIGN_TOP_LEFT, 132, 246);
+    lv_obj_align(s_switch_led, LV_ALIGN_TOP_LEFT, 132, 288);
     lv_obj_add_event_cb(s_switch_led, on_led_toggle_changed, LV_EVENT_VALUE_CHANGED, nullptr);
 
     s_lbl_led_bright = lv_label_create(s_tab_settings);
     lv_label_set_text(s_lbl_led_bright, "LED Bright:");
     lv_obj_set_style_text_color(s_lbl_led_bright, TO_LV_COLOR(p.text), LV_PART_MAIN);
-    lv_obj_align(s_lbl_led_bright, LV_ALIGN_TOP_LEFT, 10, 290);
+    lv_obj_align(s_lbl_led_bright, LV_ALIGN_TOP_LEFT, 10, 332);
 
     s_slider_led_bright = lv_slider_create(s_tab_settings);
     lv_slider_set_range(s_slider_led_bright, 10, 255);
     lv_slider_set_value(s_slider_led_bright, settings.getLedBrightness(), LV_ANIM_OFF);
     lv_obj_set_size(s_slider_led_bright, 142, 12);
-    lv_obj_align(s_slider_led_bright, LV_ALIGN_TOP_LEFT, 132, 292);
+    lv_obj_align(s_slider_led_bright, LV_ALIGN_TOP_LEFT, 132, 334);
     lv_obj_add_event_cb(s_slider_led_bright, on_led_brightness_changed, LV_EVENT_VALUE_CHANGED, nullptr);
     if (!settings.getLedEnabled()) {
         lv_obj_add_state(s_slider_led_bright, LV_STATE_DISABLED);
@@ -1274,7 +1304,7 @@ void initUI() {
     s_lbl_survey = lv_label_create(s_tab_settings);
     lv_label_set_text(s_lbl_survey, "Scan Survey:");
     lv_obj_set_style_text_color(s_lbl_survey, TO_LV_COLOR(p.text), LV_PART_MAIN);
-    lv_obj_align(s_lbl_survey, LV_ALIGN_TOP_LEFT, 10, 334);
+    lv_obj_align(s_lbl_survey, LV_ALIGN_TOP_LEFT, 10, 376);
 
     s_switch_survey = lv_switch_create(s_tab_settings);
     if (SdCardManager::isCardPresent()) {
@@ -1285,12 +1315,12 @@ void initUI() {
     } else {
         lv_obj_add_state(s_switch_survey, LV_STATE_DISABLED);
     }
-    lv_obj_align(s_switch_survey, LV_ALIGN_TOP_LEFT, 132, 330);
+    lv_obj_align(s_switch_survey, LV_ALIGN_TOP_LEFT, 132, 372);
 
     // Export Scan to SD button
     s_btn_export_survey = lv_btn_create(s_tab_settings);
     lv_obj_set_size(s_btn_export_survey, 265, 34);
-    lv_obj_align(s_btn_export_survey, LV_ALIGN_TOP_LEFT, 10, 370);
+    lv_obj_align(s_btn_export_survey, LV_ALIGN_TOP_LEFT, 10, 412);
     lv_obj_set_style_bg_color(s_btn_export_survey, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
     if (SdCardManager::isCardPresent()) {
         lv_obj_add_event_cb(s_btn_export_survey, on_export_survey_clicked, LV_EVENT_CLICKED, nullptr);
@@ -1305,7 +1335,7 @@ void initUI() {
 
     s_btn_reset = lv_btn_create(s_tab_settings);
     lv_obj_set_size(s_btn_reset, 265, 34);
-    lv_obj_align(s_btn_reset, LV_ALIGN_TOP_LEFT, 10, 414);
+    lv_obj_align(s_btn_reset, LV_ALIGN_TOP_LEFT, 10, 456);
     lv_obj_set_style_bg_color(s_btn_reset, TO_LV_COLOR(p.surface0), LV_PART_MAIN);
     lv_obj_add_event_cb(s_btn_reset, on_reset_settings_clicked, LV_EVENT_CLICKED, nullptr);
 
@@ -1317,7 +1347,7 @@ void initUI() {
     s_lbl_info = lv_label_create(s_tab_settings);
     lv_label_set_text(s_lbl_info, "ESP32 CYD Wi-Fi Analyzer\nEngine: LVGL v8 + Catppuccin RGB565");
     lv_obj_set_style_text_color(s_lbl_info, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
-    lv_obj_align(s_lbl_info, LV_ALIGN_TOP_LEFT, 10, 460);
+    lv_obj_align(s_lbl_info, LV_ALIGN_TOP_LEFT, 10, 502);
 
     styleSettingsControls(p, flavor);
 }
@@ -1407,7 +1437,8 @@ void updateUI() {
             snprintf(num, sizeof(num), "%s%d", (i > 0 ? ", " : ""), bestChannels[i]);
             strncat(chList, num, sizeof(chList) - strlen(chList) - 1);
         }
-        snprintf(summaryBuf, sizeof(summaryBuf), "APs: %d | Best Channels: %s", (int)aps.size(), chList);
+        snprintf(summaryBuf, sizeof(summaryBuf), "APs: %d | Best Ch (%s): %s", (int)aps.size(),
+                 regDomainToString(wifiAnalyzer.getRegDomain()), chList);
     }
     lv_label_set_text(s_lbl_spectrum_summary, summaryBuf);
 
@@ -1462,10 +1493,7 @@ void updateUI() {
         }
         lv_table_set_cell_value(s_table_channels, c + 1, 2, rssiBuf);
 
-        const char* rating = "Good";
-        if (channels[c].noiseScore == 0) rating = "Clean";
-        else if (channels[c].apCount > 5) rating = "Congested";
-        else if (channels[c].apCount > 2) rating = "Fair";
+        const char* rating = channelRating(channels[c], wifiAnalyzer.getMaxAllowedChannel());
         lv_table_set_cell_value(s_table_channels, c + 1, 3, rating);
     }
 }
@@ -1529,6 +1557,7 @@ void refreshThemeUI() {
     if (s_lbl_auto_bright) lv_obj_set_style_text_color(s_lbl_auto_bright, TO_LV_COLOR(p.text), LV_PART_MAIN);
     if (s_lbl_interval) lv_obj_set_style_text_color(s_lbl_interval, TO_LV_COLOR(p.text), LV_PART_MAIN);
     if (s_lbl_passive) lv_obj_set_style_text_color(s_lbl_passive, TO_LV_COLOR(p.text), LV_PART_MAIN);
+    if (s_lbl_reg_domain) lv_obj_set_style_text_color(s_lbl_reg_domain, TO_LV_COLOR(p.text), LV_PART_MAIN);
     if (s_lbl_rotation) lv_obj_set_style_text_color(s_lbl_rotation, TO_LV_COLOR(p.text), LV_PART_MAIN);
     if (s_lbl_led) lv_obj_set_style_text_color(s_lbl_led, TO_LV_COLOR(p.text), LV_PART_MAIN);
     if (s_lbl_led_bright) lv_obj_set_style_text_color(s_lbl_led_bright, TO_LV_COLOR(p.text), LV_PART_MAIN);

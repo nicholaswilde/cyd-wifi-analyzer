@@ -59,7 +59,10 @@ bool matchBssidPrefix(const uint8_t* a, const uint8_t* b);
 uint8_t rssiToQuality(int32_t rssi);
 const char* authModeToString(uint8_t authMode);
 uint16_t channelToFrequency(uint8_t channel);
-void analyzeChannels(const std::vector<AccessPointInfo>& aps, ChannelInfo channels[CHANNEL_COUNT], std::vector<uint8_t>& bestChannels);
+uint8_t regDomainMaxChannel(uint8_t domain);
+const char* regDomainToString(uint8_t domain);
+const char* channelRating(const ChannelInfo& ch, uint8_t maxChannel);
+void analyzeChannels(const std::vector<AccessPointInfo>& aps, ChannelInfo channels[CHANNEL_COUNT], std::vector<uint8_t>& bestChannels, uint8_t maxChannel = 11);
 float calculateParabolaY(float x, float cx, float spread, float peakHeight, float baseline);
 bool isApFiltered(const AccessPointInfo& ap, uint8_t filterMode);
 std::vector<size_t> filterAndSortAccessPoints(const std::vector<AccessPointInfo>& aps, uint8_t sortMode, uint8_t filterMode);
@@ -112,6 +115,11 @@ public:
     // For testing and manual population
     void setScanResults(const std::vector<AccessPointInfo>& aps);
 
+    // Regulatory domain: restricts best-channel recommendations; re-analyzes current results
+    void setRegDomain(uint8_t domain);
+    uint8_t getRegDomain() const { return _regDomain; }
+    uint8_t getMaxAllowedChannel() const { return regDomainMaxChannel(_regDomain); }
+
 private:
     std::vector<AccessPointInfo> _accessPoints;
     ChannelInfo _channels[CHANNEL_COUNT];
@@ -131,6 +139,7 @@ private:
     uint32_t _lastScanDurationMs;
     uint32_t _lastScanEndTime;
     uint32_t _scanCount;
+    uint8_t _regDomain = DEFAULT_REG_DOMAIN;
 
     void processScanResults();
 };

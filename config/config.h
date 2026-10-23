@@ -47,6 +47,13 @@
 #define MAX_CHANNEL 14
 #define CHANNEL_COUNT 14
 
+// Regulatory Domains (limit which channels may be recommended)
+#define REG_DOMAIN_US 0  // FCC: Channels 1-11
+#define REG_DOMAIN_EU 1  // ETSI: Channels 1-13
+#define REG_DOMAIN_JP 2  // TELEC: Channels 1-14
+#define REG_DOMAIN_COUNT 3
+#define DEFAULT_REG_DOMAIN REG_DOMAIN_US
+
 // Hardware Pins
 #define LDR_PIN 34
 #define BOOT_BUTTON_PIN 0

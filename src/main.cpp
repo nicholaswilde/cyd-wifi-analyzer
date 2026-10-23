@@ -24,6 +24,7 @@ void setup() {
 
     // Initialize Settings from NVS
     settings.begin();
+    wifiAnalyzer.setRegDomain((uint8_t)settings.getRegDomain());
 
     // Initialize Screenshot Manager (USB Serial frame dump listener)
     ScreenshotManager::init();

@@ -48,6 +48,9 @@ public:
     bool getScanSurveyEnabled() const { return _scanSurvey; }
     void setScanSurvey(bool enabled);
 
+    int getRegDomain() const { return _regDomain; }
+    void setRegDomain(int domain);
+
     void resetToDefaults();
 
 private:
@@ -62,6 +65,7 @@ private:
     int _apSortMode;
     int _apFilterMode;
     bool _scanSurvey;
+    int _regDomain;
 };
 
 extern SettingsManager settings;

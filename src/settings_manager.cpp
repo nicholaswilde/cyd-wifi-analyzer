@@ -18,7 +18,8 @@ SettingsManager::SettingsManager()
       _ledBrightness(DEFAULT_LED_BRIGHTNESS),
       _apSortMode(DEFAULT_AP_SORT_MODE),
       _apFilterMode(DEFAULT_AP_FILTER_MODE),
-      _scanSurvey(DEFAULT_SCAN_SURVEY) {}
+      _scanSurvey(DEFAULT_SCAN_SURVEY),
+      _regDomain(DEFAULT_REG_DOMAIN) {}
 
 void SettingsManager::begin() {
     Preferences prefs;
@@ -34,6 +35,11 @@ void SettingsManager::begin() {
         _apSortMode = prefs.getInt("ap_sort", DEFAULT_AP_SORT_MODE);
         _apFilterMode = prefs.getInt("ap_filter", DEFAULT_AP_FILTER_MODE);
         _scanSurvey = prefs.getBool("scan_survey", DEFAULT_SCAN_SURVEY);
+        _regDomain = prefs.getInt("reg_domain", DEFAULT_REG_DOMAIN);
+        // Guard against corrupted/out-of-range NVS values
+        if (_regDomain < 0 || _regDomain >= REG_DOMAIN_COUNT) {
+            _regDomain = DEFAULT_REG_DOMAIN;
+        }
         prefs.end();
     }
 }
@@ -146,6 +152,17 @@ void SettingsManager::setScanSurvey(bool enabled) {
     }
 }
 
+void SettingsManager::setRegDomain(int domain) {
+    if (domain < 0) domain = 0;
+    if (domain >= REG_DOMAIN_COUNT) domain = REG_DOMAIN_COUNT - 1;
+    _regDomain = domain;
+    Preferences prefs;
+    if (prefs.begin("wifi_analyzer", false)) {
+        prefs.putInt("reg_domain", _regDomain);
+        prefs.end();
+    }
+}
+
 void SettingsManager::resetToDefaults() {
     _themeFlavor = DEFAULT_THEME_FLAVOR;
     _brightness = DEFAULT_BRIGHTNESS;
@@ -158,6 +175,7 @@ void SettingsManager::resetToDefaults() {
     _apSortMode = DEFAULT_AP_SORT_MODE;
     _apFilterMode = DEFAULT_AP_FILTER_MODE;
     _scanSurvey = DEFAULT_SCAN_SURVEY;
+    _regDomain = DEFAULT_REG_DOMAIN;
 
     Preferences prefs;
     if (prefs.begin("wifi_analyzer", false)) {

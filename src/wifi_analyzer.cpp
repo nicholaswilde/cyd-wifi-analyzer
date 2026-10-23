@@ -52,7 +52,37 @@ float calculateParabolaY(float x, float cx, float spread, float peakHeight, floa
     return baseline - peakHeight * (1.0f - norm * norm);
 }
 
-void analyzeChannels(const std::vector<AccessPointInfo>& aps, ChannelInfo channels[CHANNEL_COUNT], std::vector<uint8_t>& bestChannels) {
+uint8_t regDomainMaxChannel(uint8_t domain) {
+    switch (domain) {
+        case REG_DOMAIN_EU: return 13;
+        case REG_DOMAIN_JP: return 14;
+        case REG_DOMAIN_US:
+        default:            return 11;
+    }
+}
+
+const char* regDomainToString(uint8_t domain) {
+    switch (domain) {
+        case REG_DOMAIN_EU: return "EU";
+        case REG_DOMAIN_JP: return "JP";
+        case REG_DOMAIN_US:
+        default:            return "US";
+    }
+}
+
+const char* channelRating(const ChannelInfo& ch, uint8_t maxChannel) {
+    // Channels outside the regulatory domain are never rated/recommended,
+    // even if foreign APs are detected on them.
+    if (ch.channel > maxChannel) return "N/A";
+    if (ch.noiseScore == 0) return "Clean";
+    if (ch.apCount > 5) return "Congested";
+    if (ch.apCount > 2) return "Fair";
+    return "Good";
+}
+
+void analyzeChannels(const std::vector<AccessPointInfo>& aps, ChannelInfo channels[CHANNEL_COUNT], std::vector<uint8_t>& bestChannels, uint8_t maxChannel) {
+    if (maxChannel < 1) maxChannel = 1;
+    if (maxChannel > CHANNEL_COUNT) maxChannel = CHANNEL_COUNT;
     for (uint8_t c = 0; c < CHANNEL_COUNT; c++) {
         channels[c].channel = c + 1;
         channels[c].apCount = 0;
@@ -100,15 +130,15 @@ void analyzeChannels(const std::vector<AccessPointInfo>& aps, ChannelInfo channe
         }
     }
 
-    // Determine channels with minimum noise in range 1-11
+    // Determine channels with minimum noise within the allowed regulatory range
     int64_t minNoise = channels[0].noiseScore;
-    for (uint8_t c = 1; c < 11; c++) {
+    for (uint8_t c = 1; c < maxChannel; c++) {
         if (channels[c].noiseScore < minNoise) {
             minNoise = channels[c].noiseScore;
         }
     }
 
-    for (uint8_t c = 0; c < 11; c++) {
+    for (uint8_t c = 0; c < maxChannel; c++) {
         if (channels[c].noiseScore == minNoise) {
             bestChannels.push_back(channels[c].channel);
         }
@@ -280,7 +310,14 @@ void WifiAnalyzer::processScanResults() {
             recordRssiSample(ap.bssidStr, (int8_t)ap.rssi);
         }
     }
-    analyzeChannels(_accessPoints, _channels, _bestChannels);
+    analyzeChannels(_accessPoints, _channels, _bestChannels, regDomainMaxChannel(_regDomain));
+}
+
+void WifiAnalyzer::setRegDomain(uint8_t domain) {
+    if (domain >= REG_DOMAIN_COUNT) domain = DEFAULT_REG_DOMAIN;
+    _regDomain = domain;
+    // Re-rank existing results immediately so the UI doesn't wait for the next scan
+    analyzeChannels(_accessPoints, _channels, _bestChannels, regDomainMaxChannel(_regDomain));
 }
 
 void WifiAnalyzer::setScanResults(const std::vector<AccessPointInfo>& aps) {
