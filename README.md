@@ -21,6 +21,8 @@ An interactive, touch-screen-enabled 2.4 GHz spectrum analyzer, access point cat
 
 - **Access Point Catalog (Networks Tab)**:
   - Scrollable catalog showing all detected 2.4 GHz networks.
+  - Interactive sorting controls: **RSSI (Strongest)**, **SSID (A-Z)**, and **Channel (1-14)**.
+  - Interactive filtering controls: **All APs**, **Open Only**, **No Hidden**, and **Open & Visible**.
   - Displays SSID, BSSID (MAC Address), Channel, RSSI with visual signal bar, and Security/Auth type (Open, WEP, WPA, WPA2, WPA3).
   - Automatic detection and labeling of hidden networks (`[Hidden Network]`).
 
@@ -116,7 +118,11 @@ The device supports capturing the current screen as a standard 24-bit BMP image 
 
 ### 1. Quick Install (Pre-compiled Binaries)
 
-Flash pre-compiled firmware directly from your terminal using the flash script. Replace `/dev/ttyUSB0` with your actual serial port. By default, it flashes the `cyd_28r` version, but you can specify the target device as the first argument:
+**Option A: Web Flasher (Easiest)**
+You can easily flash the pre-compiled firmware directly from your browser using the [ESP32 Web Flasher](https://nicholaswilde.io/esp32-web-flasher/). This requires a Web Serial compatible browser (like Chrome or Edge).
+
+**Option B: Terminal Flash Script**
+Alternatively, you can flash the device directly from your terminal using the provided flash script. Replace `/dev/ttyUSB0` with your actual serial port. By default, it flashes the `cyd_28r` version, but you can specify the target device as the first argument:
 
 ```bash
 # Flash the default cyd_28r (2.8" resistive ILI9341 320x240 screen)
@@ -231,8 +237,11 @@ This project is built with **PlatformIO** and supports ESP32 hardware compilatio
 | **Build** | `task build` | `pio run -e $PIO_ENV` | Compiles firmware for configured `PIO_ENV`. |
 | **Upload** | `task upload` | `pio run -e $PIO_ENV --target upload` | Flashes firmware to connected board. |
 | **Monitor** | `task monitor` | `pio device monitor` | Opens serial monitor (115200 baud). |
+| **Erase** | `task erase` | `pio run -e $PIO_ENV -t erase` | Erases flash on connected board. |
 | **Erase & Upload** | `task eau` | `pio run -e $PIO_ENV -t erase -t upload` | Erases flash and flashes firmware. |
 | **Upload & Monitor** | `task uam` | `pio run -e $PIO_ENV -t upload -t monitor` | Flashes firmware and opens serial monitor. |
+| **Package Binaries** | `task package` | `bash .agents/skills/package-binaries/package_binaries.sh` | Builds and packages firmware ZIP archives. |
+| **Lint Design** | `task lint:design` | `npx @google/design.md lint .agents/design.md` | Validates design tokens against DESIGN.md. |
 | **Screenshot** | `task screenshot` | `uv run python scripts/capture-serial-screenshot.py` | Captures display screenshot over serial. |
 | **Unit Tests** | `task test` | `pio test -e native` | Runs host-native unit test suite. |
 | **Coverage Report** | `task coverage:report` | `lcov --capture ...` | Displays terminal code coverage breakdown. |

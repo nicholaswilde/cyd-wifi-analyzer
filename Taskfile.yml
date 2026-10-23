@@ -145,15 +145,40 @@ tasks:
     cmds:
       - pio run -e cyd_28r -t erase -t upload
 
+  eau:cyd_28r_inv:
+    desc: Erase flash and upload for cyd_28r_inv
+    cmds:
+      - pio run -e cyd_28r_inv -t erase -t upload
+
+  eau:cyd_28c:
+    desc: Erase flash and upload for cyd_28c
+    cmds:
+      - pio run -e cyd_28c -t erase -t upload
+
+  eau:cyd_28c_inv:
+    desc: Erase flash and upload for cyd_28c_inv
+    cmds:
+      - pio run -e cyd_28c_inv -t erase -t upload
+
   eau:cyd_28_nm:
     desc: Erase flash and upload for cyd_28_nm
     cmds:
       - pio run -e cyd_28_nm -t erase -t upload
 
+  eau:cyd_28_nm_inv:
+    desc: Erase flash and upload for cyd_28_nm_inv
+    cmds:
+      - pio run -e cyd_28_nm_inv -t erase -t upload
+
   eau:cyd_35c:
     desc: Erase flash and upload for cyd_35c
     cmds:
       - pio run -e cyd_35c -t erase -t upload
+
+  eau:cyd_35c_inv:
+    desc: Erase flash and upload for cyd_35c_inv
+    cmds:
+      - pio run -e cyd_35c_inv -t erase -t upload
 
   uam:
     desc: Upload firmware and start serial monitor
@@ -165,15 +190,85 @@ tasks:
     cmds:
       - pio run -e cyd_28r -t upload -t monitor
 
+  uam:cyd_28r_inv:
+    desc: Upload and monitor for cyd_28r_inv
+    cmds:
+      - pio run -e cyd_28r_inv -t upload -t monitor
+
+  uam:cyd_28c:
+    desc: Upload and monitor for cyd_28c
+    cmds:
+      - pio run -e cyd_28c -t upload -t monitor
+
+  uam:cyd_28c_inv:
+    desc: Upload and monitor for cyd_28c_inv
+    cmds:
+      - pio run -e cyd_28c_inv -t upload -t monitor
+
   uam:cyd_28_nm:
     desc: Upload and monitor for cyd_28_nm
     cmds:
       - pio run -e cyd_28_nm -t upload -t monitor
 
+  uam:cyd_28_nm_inv:
+    desc: Upload and monitor for cyd_28_nm_inv
+    cmds:
+      - pio run -e cyd_28_nm_inv -t upload -t monitor
+
   uam:cyd_35c:
     desc: Upload and monitor for cyd_35c
     cmds:
       - pio run -e cyd_35c -t upload -t monitor
+
+  uam:cyd_35c_inv:
+    desc: Upload and monitor for cyd_35c_inv
+    cmds:
+      - pio run -e cyd_35c_inv -t upload -t monitor
+
+  erase:
+    desc: Erase flash on connected board
+    cmds:
+      - pio run -e {{.PIO_ENV}} -t erase
+
+  erase:cyd_28r:
+    desc: Erase flash for cyd_28r
+    cmds:
+      - pio run -e cyd_28r -t erase
+
+  erase:cyd_28r_inv:
+    desc: Erase flash for cyd_28r_inv
+    cmds:
+      - pio run -e cyd_28r_inv -t erase
+
+  erase:cyd_28c:
+    desc: Erase flash for cyd_28c
+    cmds:
+      - pio run -e cyd_28c -t erase
+
+  erase:cyd_28c_inv:
+    desc: Erase flash for cyd_28c_inv
+    cmds:
+      - pio run -e cyd_28c_inv -t erase
+
+  erase:cyd_28_nm:
+    desc: Erase flash for cyd_28_nm
+    cmds:
+      - pio run -e cyd_28_nm -t erase
+
+  erase:cyd_28_nm_inv:
+    desc: Erase flash for cyd_28_nm_inv
+    cmds:
+      - pio run -e cyd_28_nm_inv -t erase
+
+  erase:cyd_35c:
+    desc: Erase flash for cyd_35c
+    cmds:
+      - pio run -e cyd_35c -t erase
+
+  erase:cyd_35c_inv:
+    desc: Erase flash for cyd_35c_inv
+    cmds:
+      - pio run -e cyd_35c_inv -t erase
 
   monitor:
     desc: Start serial monitor
@@ -235,7 +330,22 @@ tasks:
     cmds:
       - pio check -e cyd_35c_inv
 
+  lint:design:
+    desc: Validate design system specification against DESIGN.md
+    cmds:
+      - command -v designmd >/dev/null 2>&1 && designmd lint .agents/design.md || npx --prefer-offline @google/design.md lint .agents/design.md
+
+  package:
+    desc: Build and package firmware binaries into ZIP archives
+    cmds:
+      - bash .agents/skills/package-binaries/package_binaries.sh {{.CLI_ARGS}}
+
   clean:
     desc: Clean build outputs
     cmds:
       - pio run -t clean
+
+  default:
+    desc: Run default task (build)
+    cmds:
+      - task: build

@@ -39,6 +39,12 @@ public:
     int getLedBrightness() const { return _ledBrightness; }
     void setLedBrightness(int brightness);
 
+    int getApSortMode() const { return _apSortMode; }
+    void setApSortMode(int mode);
+
+    int getApFilterMode() const { return _apFilterMode; }
+    void setApFilterMode(int mode);
+
     void resetToDefaults();
 
 private:
@@ -50,6 +56,8 @@ private:
     int _screenOrientation;
     bool _ledEnabled;
     int _ledBrightness;
+    int _apSortMode;
+    int _apFilterMode;
 };
 
 extern SettingsManager settings;

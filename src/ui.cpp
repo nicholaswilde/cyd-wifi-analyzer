@@ -22,6 +22,8 @@ static lv_obj_t* s_lbl_spectrum_summary = nullptr;
 static lv_obj_t* s_spectrum_view = nullptr;
 
 // Networks Tab Widgets
+static lv_obj_t* s_dropdown_ap_sort = nullptr;
+static lv_obj_t* s_dropdown_ap_filter = nullptr;
 static lv_obj_t* s_list_networks = nullptr;
 
 // Detail Modal Widgets
@@ -243,6 +245,12 @@ static void on_reset_settings_clicked(lv_event_t* e) {
         } else {
             lv_obj_add_state(s_slider_led_bright, LV_STATE_DISABLED);
         }
+    }
+    if (s_dropdown_ap_sort) {
+        lv_dropdown_set_selected(s_dropdown_ap_sort, DEFAULT_AP_SORT_MODE);
+    }
+    if (s_dropdown_ap_filter) {
+        lv_dropdown_set_selected(s_dropdown_ap_filter, DEFAULT_AP_FILTER_MODE);
     }
     refreshThemeUI();
 }
@@ -611,6 +619,100 @@ static void on_network_clicked(lv_event_t* e) {
     }
 }
 
+static void updateNetworksList();
+
+static void on_ap_sort_changed(lv_event_t* e) {
+    lv_obj_t* dropdown = lv_event_get_target(e);
+    uint16_t selected = lv_dropdown_get_selected(dropdown);
+    settings.setApSortMode((int)selected);
+    updateNetworksList();
+}
+
+static void on_ap_filter_changed(lv_event_t* e) {
+    lv_obj_t* dropdown = lv_event_get_target(e);
+    uint16_t selected = lv_dropdown_get_selected(dropdown);
+    settings.setApFilterMode((int)selected);
+    updateNetworksList();
+}
+
+static void updateNetworksList() {
+    if (!s_list_networks) return;
+    lv_obj_clean(s_list_networks);
+
+    const auto& aps = wifiAnalyzer.getAccessPoints();
+    int flavor = getCurrentThemeFlavor();
+    const auto& p = getCatppuccinFlavor(flavor);
+
+    std::vector<size_t> sortedIndices = filterAndSortAccessPoints(
+        aps,
+        (uint8_t)settings.getApSortMode(),
+        (uint8_t)settings.getApFilterMode()
+    );
+
+    if (sortedIndices.empty()) {
+        if (!aps.empty()) {
+            lv_obj_t* btn = lv_list_add_btn(s_list_networks, LV_SYMBOL_WARNING, "No networks match filter");
+            lv_obj_set_style_pad_left(btn, 6, LV_PART_MAIN);
+            lv_obj_set_style_pad_right(btn, 6, LV_PART_MAIN);
+            lv_obj_set_style_pad_top(btn, 5, LV_PART_MAIN);
+            lv_obj_set_style_pad_bottom(btn, 5, LV_PART_MAIN);
+            lv_obj_set_style_text_color(btn, TO_LV_COLOR(p.subtext0), LV_PART_MAIN);
+        }
+        return;
+    }
+
+    for (size_t origIdx : sortedIndices) {
+        const auto& ap = aps[origIdx];
+
+        const char* rawAuth = authModeToString(ap.authMode);
+        char shortAuth[10];
+        if (strstr(rawAuth, "WPA3")) strcpy(shortAuth, "WPA3");
+        else if (strstr(rawAuth, "WPA2")) strcpy(shortAuth, "WPA2");
+        else if (strstr(rawAuth, "WPA")) strcpy(shortAuth, "WPA");
+        else if (strstr(rawAuth, "WEP")) strcpy(shortAuth, "WEP");
+        else strcpy(shortAuth, "Open");
+
+        String displaySsid = ap.ssid;
+        if (ap.isHidden || displaySsid.startsWith("[Hidden")) {
+            displaySsid = "[Hidden]";
+        }
+
+        char btnText[64];
+        snprintf(btnText, sizeof(btnText), "Ch%-2d  %-9.9s  %ddBm  %s",
+                 ap.channel,
+                 displaySsid.c_str(),
+                 (int)ap.rssi,
+                 shortAuth);
+
+        lv_obj_t* btn = lv_list_add_btn(s_list_networks, LV_SYMBOL_WIFI, btnText);
+        lv_obj_set_style_pad_left(btn, 6, LV_PART_MAIN);
+        lv_obj_set_style_pad_right(btn, 6, LV_PART_MAIN);
+        lv_obj_set_style_pad_top(btn, 5, LV_PART_MAIN);
+        lv_obj_set_style_pad_bottom(btn, 5, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(btn, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.mantle) : TO_LV_COLOR(p.surface0)), LV_PART_MAIN);
+        lv_obj_set_style_border_color(btn, TO_LV_COLOR(p.surface1), LV_PART_MAIN);
+        lv_obj_set_style_border_width(btn, 1, LV_PART_MAIN);
+        lv_obj_set_style_radius(btn, 4, LV_PART_MAIN);
+
+        lv_color_t chanColor = getChannelLvColor(ap.channel, flavor);
+        uint32_t cnt = lv_obj_get_child_cnt(btn);
+        if (cnt >= 2) {
+            lv_obj_t* icon_obj = lv_obj_get_child(btn, 0);
+            lv_obj_t* label_obj = lv_obj_get_child(btn, 1);
+            lv_obj_set_style_text_color(icon_obj, chanColor, LV_PART_MAIN);
+            if (flavor == CATPPUCCIN_LATTE) {
+                lv_obj_set_style_text_color(label_obj, TO_LV_COLOR(p.text), LV_PART_MAIN);
+            } else {
+                lv_obj_set_style_text_color(label_obj, chanColor, LV_PART_MAIN);
+            }
+        } else {
+            lv_obj_set_style_text_color(btn, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.text) : chanColor), LV_PART_MAIN);
+        }
+        lv_obj_set_user_data(btn, (void*)(uintptr_t)origIdx);
+        lv_obj_add_event_cb(btn, on_network_clicked, LV_EVENT_CLICKED, nullptr);
+    }
+}
+
 static void on_channels_table_draw_cell(lv_event_t* e) {
     lv_obj_draw_part_dsc_t* dsc = lv_event_get_draw_part_dsc(e);
     if (!dsc || dsc->part != LV_PART_ITEMS) return;
@@ -854,7 +956,7 @@ static void styleSettingsControls(const Catppuccin::Palette& p, int flavor) {
     lv_color_t active_bg = TO_LV_COLOR(p.blue);
     lv_color_t knob_bg = (flavor == CATPPUCCIN_LATTE) ? TO_LV_COLOR(p.base) : TO_LV_COLOR(p.text);
 
-    lv_obj_t* dropdowns[] = {s_dropdown_theme, s_dropdown_interval, s_dropdown_rotation};
+    lv_obj_t* dropdowns[] = {s_dropdown_theme, s_dropdown_interval, s_dropdown_rotation, s_dropdown_ap_sort, s_dropdown_ap_filter};
     for (lv_obj_t* d : dropdowns) {
         if (d) {
             lv_obj_set_style_bg_color(d, TO_LV_COLOR(p.mantle), LV_PART_MAIN);
@@ -939,13 +1041,32 @@ void initUI() {
     // ----------------------------------------------------
     // Tab 2: Networks List
     // ----------------------------------------------------
+    lv_obj_clear_flag(s_tab_networks, LV_OBJ_FLAG_SCROLLABLE);
+
+    s_dropdown_ap_sort = lv_dropdown_create(s_tab_networks);
+    lv_dropdown_set_options(s_dropdown_ap_sort, "Sort: RSSI\nSort: SSID\nSort: Channel");
+    lv_dropdown_set_selected(s_dropdown_ap_sort, settings.getApSortMode());
+    lv_obj_set_size(s_dropdown_ap_sort, 144, LV_SIZE_CONTENT);
+    lv_obj_align(s_dropdown_ap_sort, LV_ALIGN_TOP_LEFT, 4, 2);
+    lv_obj_add_event_cb(s_dropdown_ap_sort, on_ap_sort_changed, LV_EVENT_VALUE_CHANGED, nullptr);
+
+    s_dropdown_ap_filter = lv_dropdown_create(s_tab_networks);
+    lv_dropdown_set_options(s_dropdown_ap_filter, "All APs\nOpen Only\nNo Hidden\nOpen & Visible");
+    lv_dropdown_set_selected(s_dropdown_ap_filter, settings.getApFilterMode());
+    lv_obj_set_size(s_dropdown_ap_filter, 154, LV_SIZE_CONTENT);
+    lv_obj_align(s_dropdown_ap_filter, LV_ALIGN_TOP_RIGHT, -4, 2);
+    lv_obj_add_event_cb(s_dropdown_ap_filter, on_ap_filter_changed, LV_EVENT_VALUE_CHANGED, nullptr);
+
     s_list_networks = lv_list_create(s_tab_networks);
-    lv_obj_set_size(s_list_networks, LV_PCT(100), LV_PCT(100));
+    lv_coord_t screen_h = lv_disp_get_ver_res(lv_disp_get_default());
+    lv_coord_t list_h = screen_h - 34 - 38;
+    lv_obj_set_size(s_list_networks, LV_PCT(100), list_h > 100 ? list_h : 166);
+    lv_obj_align(s_list_networks, LV_ALIGN_BOTTOM_MID, 0, 0);
     lv_obj_set_style_bg_color(s_list_networks, TO_LV_COLOR(p.base), LV_PART_MAIN);
     lv_obj_set_style_border_width(s_list_networks, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_left(s_list_networks, 4, LV_PART_MAIN);
     lv_obj_set_style_pad_right(s_list_networks, 4, LV_PART_MAIN);
-    lv_obj_set_style_pad_top(s_list_networks, 4, LV_PART_MAIN);
+    lv_obj_set_style_pad_top(s_list_networks, 2, LV_PART_MAIN);
     lv_obj_set_style_pad_bottom(s_list_networks, 4, LV_PART_MAIN);
     lv_obj_set_style_pad_row(s_list_networks, 3, LV_PART_MAIN);
 
@@ -1205,60 +1326,7 @@ void updateUI() {
     }
 
     // 3. Update Networks List
-    lv_obj_clean(s_list_networks);
-    const auto& p = getCatppuccinFlavor(getCurrentThemeFlavor());
-
-    for (size_t i = 0; i < aps.size(); i++) {
-        const auto& ap = aps[i];
-
-        const char* rawAuth = authModeToString(ap.authMode);
-        char shortAuth[10];
-        if (strstr(rawAuth, "WPA3")) strcpy(shortAuth, "WPA3");
-        else if (strstr(rawAuth, "WPA2")) strcpy(shortAuth, "WPA2");
-        else if (strstr(rawAuth, "WPA")) strcpy(shortAuth, "WPA");
-        else if (strstr(rawAuth, "WEP")) strcpy(shortAuth, "WEP");
-        else strcpy(shortAuth, "Open");
-
-        String displaySsid = ap.ssid;
-        if (ap.isHidden || displaySsid.startsWith("[Hidden")) {
-            displaySsid = "[Hidden]";
-        }
-
-        char btnText[64];
-        snprintf(btnText, sizeof(btnText), "Ch%-2d  %-9.9s  %ddBm  %s",
-                 ap.channel,
-                 displaySsid.c_str(),
-                 (int)ap.rssi,
-                 shortAuth);
-
-        int flavor = getCurrentThemeFlavor();
-        lv_obj_t* btn = lv_list_add_btn(s_list_networks, LV_SYMBOL_WIFI, btnText);
-        lv_obj_set_style_pad_left(btn, 6, LV_PART_MAIN);
-        lv_obj_set_style_pad_right(btn, 6, LV_PART_MAIN);
-        lv_obj_set_style_pad_top(btn, 5, LV_PART_MAIN);
-        lv_obj_set_style_pad_bottom(btn, 5, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(btn, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.mantle) : TO_LV_COLOR(p.surface0)), LV_PART_MAIN);
-        lv_obj_set_style_border_color(btn, TO_LV_COLOR(p.surface1), LV_PART_MAIN);
-        lv_obj_set_style_border_width(btn, 1, LV_PART_MAIN);
-        lv_obj_set_style_radius(btn, 4, LV_PART_MAIN);
-
-        lv_color_t chanColor = getChannelLvColor(ap.channel, flavor);
-        uint32_t cnt = lv_obj_get_child_cnt(btn);
-        if (cnt >= 2) {
-            lv_obj_t* icon_obj = lv_obj_get_child(btn, 0);
-            lv_obj_t* label_obj = lv_obj_get_child(btn, 1);
-            lv_obj_set_style_text_color(icon_obj, chanColor, LV_PART_MAIN);
-            if (flavor == CATPPUCCIN_LATTE) {
-                lv_obj_set_style_text_color(label_obj, TO_LV_COLOR(p.text), LV_PART_MAIN);
-            } else {
-                lv_obj_set_style_text_color(label_obj, chanColor, LV_PART_MAIN);
-            }
-        } else {
-            lv_obj_set_style_text_color(btn, (flavor == CATPPUCCIN_LATTE ? TO_LV_COLOR(p.text) : chanColor), LV_PART_MAIN);
-        }
-        lv_obj_set_user_data(btn, (void*)(uintptr_t)i);
-        lv_obj_add_event_cb(btn, on_network_clicked, LV_EVENT_CLICKED, nullptr);
-    }
+    updateNetworksList();
 
     // 4. Update Detail Modal (if currently open for an active AP)
     if (s_detail_modal && s_modal_bssid.length() > 0) {

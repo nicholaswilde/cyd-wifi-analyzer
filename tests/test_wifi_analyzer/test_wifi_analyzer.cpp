@@ -305,6 +305,155 @@ void test_tracker_proximity_strings(void) {
     TEST_ASSERT_EQUAL_STRING("Faint / Out of Range", wa.getTargetProximityStr());
 }
 
+void test_ap_filtering(void) {
+    std::vector<AccessPointInfo> aps;
+    // AP 0: Protected, visible
+    AccessPointInfo ap0;
+    ap0.ssid = "HomeNet";
+    ap0.rssi = -60;
+    ap0.channel = 1;
+    ap0.authMode = WIFI_AUTH_WPA2_PSK;
+    ap0.isHidden = false;
+    aps.push_back(ap0);
+
+    // AP 1: Open, visible
+    AccessPointInfo ap1;
+    ap1.ssid = "CoffeeGuest";
+    ap1.rssi = -70;
+    ap1.channel = 6;
+    ap1.authMode = WIFI_AUTH_OPEN;
+    ap1.isHidden = false;
+    aps.push_back(ap1);
+
+    // AP 2: Protected, hidden (flag true)
+    AccessPointInfo ap2;
+    ap2.ssid = "";
+    ap2.rssi = -40;
+    ap2.channel = 6;
+    ap2.authMode = WIFI_AUTH_WPA2_PSK;
+    ap2.isHidden = true;
+    aps.push_back(ap2);
+
+    // AP 3: Open, hidden (SSID prefix "[Hidden")
+    AccessPointInfo ap3;
+    ap3.ssid = "[Hidden Network]";
+    ap3.rssi = -85;
+    ap3.channel = 11;
+    ap3.authMode = WIFI_AUTH_OPEN;
+    ap3.isHidden = false;
+    aps.push_back(ap3);
+
+    // AP 4: Open, visible
+    AccessPointInfo ap4;
+    ap4.ssid = "AirportFree";
+    ap4.rssi = -50;
+    ap4.channel = 11;
+    ap4.authMode = WIFI_AUTH_OPEN;
+    ap4.isHidden = false;
+    aps.push_back(ap4);
+
+    // AP_FILTER_ALL: all 5
+    auto allIdx = filterAndSortAccessPoints(aps, AP_SORT_RSSI, AP_FILTER_ALL);
+    TEST_ASSERT_EQUAL_UINT32(5, allIdx.size());
+
+    // AP_FILTER_OPEN_ONLY: AP 1, AP 3, AP 4
+    auto openIdx = filterAndSortAccessPoints(aps, AP_SORT_RSSI, AP_FILTER_OPEN_ONLY);
+    TEST_ASSERT_EQUAL_UINT32(3, openIdx.size());
+    for (size_t idx : openIdx) {
+        TEST_ASSERT_EQUAL(WIFI_AUTH_OPEN, aps[idx].authMode);
+    }
+
+    // AP_FILTER_HIDE_HIDDEN: AP 0, AP 1, AP 4
+    auto noHiddenIdx = filterAndSortAccessPoints(aps, AP_SORT_RSSI, AP_FILTER_HIDE_HIDDEN);
+    TEST_ASSERT_EQUAL_UINT32(3, noHiddenIdx.size());
+    for (size_t idx : noHiddenIdx) {
+        TEST_ASSERT_FALSE(aps[idx].isHidden);
+        TEST_ASSERT_FALSE(aps[idx].ssid.startsWith("[Hidden"));
+        TEST_ASSERT_TRUE(aps[idx].ssid.length() > 0);
+    }
+
+    // AP_FILTER_OPEN_AND_VISIBLE: AP 1, AP 4
+    auto openVisibleIdx = filterAndSortAccessPoints(aps, AP_SORT_RSSI, AP_FILTER_OPEN_AND_VISIBLE);
+    TEST_ASSERT_EQUAL_UINT32(2, openVisibleIdx.size());
+    for (size_t idx : openVisibleIdx) {
+        TEST_ASSERT_EQUAL(WIFI_AUTH_OPEN, aps[idx].authMode);
+        TEST_ASSERT_FALSE(aps[idx].isHidden);
+        TEST_ASSERT_FALSE(aps[idx].ssid.startsWith("[Hidden"));
+    }
+}
+
+void test_ap_sorting(void) {
+    std::vector<AccessPointInfo> aps;
+
+    AccessPointInfo ap0;
+    ap0.ssid = "zebra";
+    ap0.rssi = -60;
+    ap0.channel = 6;
+    ap0.authMode = WIFI_AUTH_WPA2_PSK;
+    ap0.isHidden = false;
+    aps.push_back(ap0);
+
+    AccessPointInfo ap1;
+    ap1.ssid = "Apple";
+    ap1.rssi = -80;
+    ap1.channel = 1;
+    ap1.authMode = WIFI_AUTH_WPA2_PSK;
+    ap1.isHidden = false;
+    aps.push_back(ap1);
+
+    AccessPointInfo ap2;
+    ap2.ssid = "banana";
+    ap2.rssi = -45;
+    ap2.channel = 6;
+    ap2.authMode = WIFI_AUTH_WPA2_PSK;
+    ap2.isHidden = false;
+    aps.push_back(ap2);
+
+    AccessPointInfo ap3;
+    ap3.ssid = "[Hidden]";
+    ap3.rssi = -30;
+    ap3.channel = 11;
+    ap3.authMode = WIFI_AUTH_WPA2_PSK;
+    ap3.isHidden = true;
+    aps.push_back(ap3);
+
+    // 1. Sort by RSSI: -30 (ap3) -> -45 (ap2) -> -60 (ap0) -> -80 (ap1)
+    auto rssiIdx = filterAndSortAccessPoints(aps, AP_SORT_RSSI, AP_FILTER_ALL);
+    TEST_ASSERT_EQUAL_UINT32(4, rssiIdx.size());
+    TEST_ASSERT_EQUAL(3, rssiIdx[0]);
+    TEST_ASSERT_EQUAL(2, rssiIdx[1]);
+    TEST_ASSERT_EQUAL(0, rssiIdx[2]);
+    TEST_ASSERT_EQUAL(1, rssiIdx[3]);
+
+    // 2. Sort by SSID (case-insensitive, visible first): "Apple" -> "banana" -> "zebra" -> "[Hidden]"
+    auto ssidIdx = filterAndSortAccessPoints(aps, AP_SORT_SSID, AP_FILTER_ALL);
+    TEST_ASSERT_EQUAL_UINT32(4, ssidIdx.size());
+    TEST_ASSERT_EQUAL_STRING("Apple", aps[ssidIdx[0]].ssid.c_str());
+    TEST_ASSERT_EQUAL_STRING("banana", aps[ssidIdx[1]].ssid.c_str());
+    TEST_ASSERT_EQUAL_STRING("zebra", aps[ssidIdx[2]].ssid.c_str());
+    TEST_ASSERT_EQUAL_STRING("[Hidden]", aps[ssidIdx[3]].ssid.c_str());
+
+    // 3. Sort by Channel: Ch 1 (ap1) -> Ch 6 (-45 ap2, then -60 ap0) -> Ch 11 (ap3)
+    auto chanIdx = filterAndSortAccessPoints(aps, AP_SORT_CHANNEL, AP_FILTER_ALL);
+    TEST_ASSERT_EQUAL_UINT32(4, chanIdx.size());
+    TEST_ASSERT_EQUAL(1, chanIdx[0]); // Ch 1
+    TEST_ASSERT_EQUAL(2, chanIdx[1]); // Ch 6, -45 dBm
+    TEST_ASSERT_EQUAL(0, chanIdx[2]); // Ch 6, -60 dBm
+    TEST_ASSERT_EQUAL(3, chanIdx[3]); // Ch 11
+}
+
+void test_ap_filter_and_sort_empty(void) {
+    std::vector<AccessPointInfo> emptyAps;
+    auto res1 = filterAndSortAccessPoints(emptyAps, AP_SORT_RSSI, AP_FILTER_ALL);
+    TEST_ASSERT_TRUE(res1.empty());
+
+    auto res2 = filterAndSortAccessPoints(emptyAps, AP_SORT_SSID, AP_FILTER_OPEN_ONLY);
+    TEST_ASSERT_TRUE(res2.empty());
+
+    auto res3 = filterAndSortAccessPoints(emptyAps, AP_SORT_CHANNEL, AP_FILTER_HIDE_HIDDEN);
+    TEST_ASSERT_TRUE(res3.empty());
+}
+
 int main(void) {
     UNITY_BEGIN();
     RUN_TEST(test_match_bssid_prefix);
@@ -323,5 +472,8 @@ int main(void) {
     RUN_TEST(test_tracker_sampling_and_history);
     RUN_TEST(test_tracker_trend_calculation);
     RUN_TEST(test_tracker_proximity_strings);
+    RUN_TEST(test_ap_filtering);
+    RUN_TEST(test_ap_sorting);
+    RUN_TEST(test_ap_filter_and_sort_empty);
     return UNITY_END();
 }

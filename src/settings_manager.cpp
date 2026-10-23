@@ -15,7 +15,9 @@ SettingsManager::SettingsManager()
       _passiveScan(PASSIVE_SCAN),
       _screenOrientation(DEFAULT_SCREEN_ORIENTATION),
       _ledEnabled(DEFAULT_LED_ENABLED),
-      _ledBrightness(DEFAULT_LED_BRIGHTNESS) {}
+      _ledBrightness(DEFAULT_LED_BRIGHTNESS),
+      _apSortMode(DEFAULT_AP_SORT_MODE),
+      _apFilterMode(DEFAULT_AP_FILTER_MODE) {}
 
 void SettingsManager::begin() {
     Preferences prefs;
@@ -28,6 +30,8 @@ void SettingsManager::begin() {
         _screenOrientation = prefs.getInt("orientation", DEFAULT_SCREEN_ORIENTATION);
         _ledEnabled = prefs.getBool("led_en", DEFAULT_LED_ENABLED);
         _ledBrightness = prefs.getInt("led_bright", DEFAULT_LED_BRIGHTNESS);
+        _apSortMode = prefs.getInt("ap_sort", DEFAULT_AP_SORT_MODE);
+        _apFilterMode = prefs.getInt("ap_filter", DEFAULT_AP_FILTER_MODE);
         prefs.end();
     }
 }
@@ -109,6 +113,28 @@ void SettingsManager::setLedBrightness(int brightness) {
     }
 }
 
+void SettingsManager::setApSortMode(int mode) {
+    if (mode < 0) mode = 0;
+    if (mode > 2) mode = 2;
+    _apSortMode = mode;
+    Preferences prefs;
+    if (prefs.begin("wifi_analyzer", false)) {
+        prefs.putInt("ap_sort", _apSortMode);
+        prefs.end();
+    }
+}
+
+void SettingsManager::setApFilterMode(int mode) {
+    if (mode < 0) mode = 0;
+    if (mode > 3) mode = 3;
+    _apFilterMode = mode;
+    Preferences prefs;
+    if (prefs.begin("wifi_analyzer", false)) {
+        prefs.putInt("ap_filter", _apFilterMode);
+        prefs.end();
+    }
+}
+
 void SettingsManager::resetToDefaults() {
     _themeFlavor = DEFAULT_THEME_FLAVOR;
     _brightness = DEFAULT_BRIGHTNESS;
@@ -118,6 +144,8 @@ void SettingsManager::resetToDefaults() {
     _screenOrientation = DEFAULT_SCREEN_ORIENTATION;
     _ledEnabled = DEFAULT_LED_ENABLED;
     _ledBrightness = DEFAULT_LED_BRIGHTNESS;
+    _apSortMode = DEFAULT_AP_SORT_MODE;
+    _apFilterMode = DEFAULT_AP_FILTER_MODE;
 
     Preferences prefs;
     if (prefs.begin("wifi_analyzer", false)) {

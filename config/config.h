@@ -35,6 +35,10 @@
 #define RSSI_CEILING -40
 #define RSSI_FLOOR -100
 
+// AP Catalog Sort and Filter Defaults
+#define DEFAULT_AP_SORT_MODE 0    // 0: RSSI (Strongest), 1: SSID (A-Z), 2: Channel (1-14)
+#define DEFAULT_AP_FILTER_MODE 0  // 0: All, 1: Open Only, 2: Hide Hidden, 3: Open & Visible
+
 // 2.4 GHz Channels
 #define MIN_CHANNEL 1
 #define MAX_CHANNEL 14

@@ -365,3 +365,67 @@ LedManager::State WifiAnalyzer::getTrackerLedStatus() const {
         return LedManager::STATE_CONGESTED_RED;
     }
 }
+
+bool isApFiltered(const AccessPointInfo& ap, uint8_t filterMode) {
+    bool isHidden = ap.isHidden || ap.ssid.length() == 0 || ap.ssid.startsWith("[Hidden");
+    switch (filterMode) {
+        case AP_FILTER_OPEN_ONLY:
+            return ap.authMode == WIFI_AUTH_OPEN;
+        case AP_FILTER_HIDE_HIDDEN:
+            return !isHidden;
+        case AP_FILTER_OPEN_AND_VISIBLE:
+            return (ap.authMode == WIFI_AUTH_OPEN) && !isHidden;
+        case AP_FILTER_ALL:
+        default:
+            return true;
+    }
+}
+
+static bool compareSsidCaseInsensitive(const AccessPointInfo& a, const AccessPointInfo& b) {
+    bool aHidden = a.isHidden || a.ssid.length() == 0 || a.ssid.startsWith("[Hidden");
+    bool bHidden = b.isHidden || b.ssid.length() == 0 || b.ssid.startsWith("[Hidden");
+    if (aHidden != bHidden) {
+        return !aHidden; // Visible networks come before hidden
+    }
+    size_t lenA = a.ssid.length();
+    size_t lenB = b.ssid.length();
+    size_t minLen = (lenA < lenB) ? lenA : lenB;
+    for (size_t i = 0; i < minLen; i++) {
+        char ca = (char)tolower((unsigned char)a.ssid[i]);
+        char cb = (char)tolower((unsigned char)b.ssid[i]);
+        if (ca != cb) return ca < cb;
+    }
+    if (lenA != lenB) return lenA < lenB;
+    // Tie-breaker: stronger RSSI first
+    return a.rssi > b.rssi;
+}
+
+std::vector<size_t> filterAndSortAccessPoints(const std::vector<AccessPointInfo>& aps, uint8_t sortMode, uint8_t filterMode) {
+    std::vector<size_t> indices;
+    indices.reserve(aps.size());
+    for (size_t i = 0; i < aps.size(); i++) {
+        if (isApFiltered(aps[i], filterMode)) {
+            indices.push_back(i);
+        }
+    }
+
+    std::stable_sort(indices.begin(), indices.end(), [&](size_t i1, size_t i2) {
+        const auto& a = aps[i1];
+        const auto& b = aps[i2];
+        if (sortMode == AP_SORT_SSID) {
+            return compareSsidCaseInsensitive(a, b);
+        } else if (sortMode == AP_SORT_CHANNEL) {
+            if (a.channel != b.channel) {
+                return a.channel < b.channel;
+            }
+            return a.rssi > b.rssi;
+        } else { // AP_SORT_RSSI
+            if (a.rssi != b.rssi) {
+                return a.rssi > b.rssi;
+            }
+            return a.channel < b.channel;
+        }
+    });
+
+    return indices;
+}

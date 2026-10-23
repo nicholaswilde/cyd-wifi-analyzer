@@ -39,6 +39,19 @@ struct ChannelInfo {
     int16_t peakApIndex;
 };
 
+enum ApSortMode {
+    AP_SORT_RSSI = 0,
+    AP_SORT_SSID = 1,
+    AP_SORT_CHANNEL = 2
+};
+
+enum ApFilterMode {
+    AP_FILTER_ALL = 0,
+    AP_FILTER_OPEN_ONLY = 1,
+    AP_FILTER_HIDE_HIDDEN = 2,
+    AP_FILTER_OPEN_AND_VISIBLE = 3
+};
+
 // Analysis utility functions
 bool matchBssidPrefix(const uint8_t* a, const uint8_t* b);
 uint8_t rssiToQuality(int32_t rssi);
@@ -46,6 +59,8 @@ const char* authModeToString(uint8_t authMode);
 uint16_t channelToFrequency(uint8_t channel);
 void analyzeChannels(const std::vector<AccessPointInfo>& aps, ChannelInfo channels[CHANNEL_COUNT], std::vector<uint8_t>& bestChannels);
 float calculateParabolaY(float x, float cx, float spread, float peakHeight, float baseline);
+bool isApFiltered(const AccessPointInfo& ap, uint8_t filterMode);
+std::vector<size_t> filterAndSortAccessPoints(const std::vector<AccessPointInfo>& aps, uint8_t sortMode, uint8_t filterMode);
 
 class WifiAnalyzer {
 public:
@@ -58,6 +73,9 @@ public:
     bool isScanning() const { return _isScanning; }
     
     const std::vector<AccessPointInfo>& getAccessPoints() const { return _accessPoints; }
+    std::vector<size_t> getFilteredAndSortedIndices(uint8_t sortMode, uint8_t filterMode) const {
+        return filterAndSortAccessPoints(_accessPoints, sortMode, filterMode);
+    }
     const ChannelInfo* getChannels() const { return _channels; }
     const std::vector<uint8_t>& getBestChannels() const { return _bestChannels; }
     uint32_t getLastScanDurationMs() const { return _lastScanDurationMs; }
